@@ -13,7 +13,10 @@
     "test:e2e": "playwright test",
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "clean": "rimraf dist node_modules package-lock.json",
+    "fresh": "npm run clean && npm install",
+    "lightweight": "npm run clean && npm install --production && npm run dev"
   },
   "dependencies": {
     "@amap/amap-jsapi-loader": "^1.0.1",
