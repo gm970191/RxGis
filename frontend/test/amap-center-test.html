@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高德地图中心位置设置测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        
+        .container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #map-container {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            z-index: 1000;
+        }
+        
+        .panel-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .panel-header h2 {
+            color: #1890ff;
+            margin-bottom: 5px;
+        }
+        
+        .panel-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .location-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .location-item:hover {
+            border-color: #1890ff;
+            background: #e6f7ff;
+            transform: translateY(-2px);
+        }
+        
+        .location-item.active {
+            border-color: #1890ff;
+            background: #e6f7ff;
+            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+        }
+        
+        .location-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+        
+        .location-coords {
+            font-family: monospace;
+            color: #666;
+            font-size: 12px;
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .status-info {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .status-title {
+            font-weight: bold;
+            color: #1890ff;
+            margin-bottom: 10px;
+        }
+        
+        .status-item {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .log-success { color: #28a745; }
+        .log-info { color: #17a2b8; }
+        
+        .center-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            background: #ff4d4f;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            z-index: 999;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 地图容器 -->
+        <div id="map-container"></div>
+        
+        <!-- 地图中心指示器 -->
+        <div class="center-indicator"></div>
+        
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <div class="panel-header">
+                <h2>地图中心位置测试</h2>
+                <p>点击任意位置，地图将以该位置为中心</p>
+            </div>
+            
+            <div>
+                <div 
+                    class="location-item"
+                    data-lng="116.397428"
+                    data-lat="39.90923"
+                    onclick="centerToLocation('天安门', 116.397428, 39.90923)"
+                >
+                    <div class="location-name">📍 天安门</div>
+                    <div class="location-coords">[116.397428, 39.90923]</div>
+                </div>
+                
+                <div 
+                    class="location-item"
+                    data-lng="116.420000"
+                    data-lat="39.930000"
+                    onclick="centerToLocation('北京东部', 116.420000, 39.930000)"
+                >
+                    <div class="location-name">🏢 北京东部</div>
+                    <div class="location-coords">[116.420000, 39.930000]</div>
+                </div>
+                
+                <div 
+                    class="location-item"
+                    data-lng="116.450000"
+                    data-lat="39.950000"
+                    onclick="centerToLocation('北京东北部', 116.450000, 39.950000)"
+                >
+                    <div class="location-name">🏘️ 北京东北部</div>
+                    <div class="location-coords">[116.450000, 39.950000]</div>
+                </div>
+            </div>
+            
+            <div class="status-info">
+                <div class="status-title">当前状态</div>
+                <div class="status-item">
+                    中心位置: <span id="current-location">未设置</span>
+                </div>
+                <div class="status-item">
+                    坐标: <span id="current-coords">无</span>
+                </div>
+            </div>
+            
+            <div class="log-area">
+                <div class="status-title">操作日志</div>
+                <div id="log-content">
+                    <div class="log-entry log-info">[页面加载] 地图初始化完成</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 高德地图API -->
+    <script type="text/javascript">
+        // 高德地图API密钥 - 请替换为您的实际密钥
+        window._AMapSecurityConfig = {
+            securityJsCode: '您的安全密钥',
+        }
+    </script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=您的API密钥"></script>
+    
+    <script>
+        let map;
+        let currentLocation = null;
+        
+        // 初始化地图
+        function initMap() {
+            // 创建地图实例
+            map = new AMap.Map('map-container', {
+                zoom: 12,
+                center: [116.397428, 39.90923], // 默认中心点
+                mapStyle: 'amap://styles/normal'
+            });
+            
+            // 添加地图控件
+            map.addControl(new AMap.Scale());
+            map.addControl(new AMap.ToolBar());
+            
+            // 添加点击事件监听
+            map.on('click', function(e) {
+                const lng = e.lnglat.getLng();
+                const lat = e.lnglat.getLat();
+                addLog(`地图点击: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`, 'info');
+            });
+            
+            addLog('地图初始化完成', 'success');
+            updateStatus('未设置', '无');
+        }
+        
+        // 设置地图中心
+        function centerToLocation(name, lng, lat) {
+            if (!map) {
+                addLog('错误: 地图未初始化', 'error');
+                return;
+            }
+            
+            // 设置地图中心
+            map.setCenter([lng, lat]);
+            
+            // 更新当前状态
+            currentLocation = { name, lng, lat };
+            updateStatus(name, `[${lng.toFixed(6)}, ${lat.toFixed(6)}]`);
+            
+            // 更新选中状态
+            updateActiveLocation(lng, lat);
+            
+            // 添加日志
+            addLog(`地图中心切换到: ${name}`, 'success');
+            addLog(`坐标: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`, 'info');
+        }
+        
+        // 更新状态显示
+        function updateStatus(location, coords) {
+            document.getElementById('current-location').textContent = location;
+            document.getElementById('current-coords').textContent = coords;
+        }
+        
+        // 更新选中状态
+        function updateActiveLocation(lng, lat) {
+            // 移除所有选中状态
+            document.querySelectorAll('.location-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 添加选中状态
+            document.querySelectorAll('.location-item').forEach(item => {
+                const itemLng = parseFloat(item.dataset.lng);
+                const itemLat = parseFloat(item.dataset.lat);
+                
+                if (Math.abs(itemLng - lng) < 0.000001 && Math.abs(itemLat - lat) < 0.000001) {
+                    item.classList.add('active');
+                }
+            });
+        }
+        
+        // 添加日志
+        function addLog(message, type = 'info') {
+            const logContent = document.getElementById('log-content');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            logContent.appendChild(logEntry);
+            
+            // 保持最多20条日志
+            while (logContent.children.length > 20) {
+                logContent.removeChild(logContent.firstChild);
+            }
+            
+            // 滚动到底部
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+        
+        // 页面加载完成后初始化地图
+        window.onload = function() {
+            // 检查高德地图API是否加载成功
+            if (typeof AMap === 'undefined') {
+                addLog('错误: 高德地图API加载失败，请检查网络连接和API密钥', 'error');
+                return;
+            }
+            
+            initMap();
+        };
+        
+        // 错误处理
+        window.onerror = function(msg, url, line) {
+            addLog(`JavaScript错误: ${msg}`, 'error');
+        };
+    </script>
+</body>
+</html> 

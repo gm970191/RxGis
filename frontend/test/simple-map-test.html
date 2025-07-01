@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地图中心位置设置测试</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        
+        .container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 320px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 20px;
+            z-index: 1000;
+        }
+        
+        .panel-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .panel-header h2 {
+            color: #1890ff;
+            margin-bottom: 5px;
+        }
+        
+        .panel-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .location-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .location-item:hover {
+            border-color: #1890ff;
+            background: #e6f7ff;
+            transform: translateY(-2px);
+        }
+        
+        .location-item.active {
+            border-color: #1890ff;
+            background: #e6f7ff;
+            box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+        }
+        
+        .location-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+        
+        .location-coords {
+            font-family: monospace;
+            color: #666;
+            font-size: 12px;
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .status-info {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .status-title {
+            font-weight: bold;
+            color: #1890ff;
+            margin-bottom: 10px;
+        }
+        
+        .status-item {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .log-success { color: #28a745; }
+        .log-info { color: #17a2b8; }
+        .log-error { color: #dc3545; }
+        
+        .test-buttons {
+            margin-top: 15px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            margin: 5px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .btn:hover {
+            border-color: #1890ff;
+            color: #1890ff;
+        }
+        
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+            border-color: #1890ff;
+        }
+        
+        .btn-primary:hover {
+            background: #40a9ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 地图容器 -->
+        <div id="map"></div>
+        
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <div class="panel-header">
+                <h2>地图中心位置测试</h2>
+                <p>点击任意位置，地图将以该位置为中心</p>
+            </div>
+            
+            <div>
+                <div 
+                    class="location-item"
+                    data-lng="116.397428"
+                    data-lat="39.90923"
+                    onclick="centerToLocation('天安门', 116.397428, 39.90923)"
+                >
+                    <div class="location-name">📍 天安门</div>
+                    <div class="location-coords">[116.397428, 39.90923]</div>
+                </div>
+                
+                <div 
+                    class="location-item"
+                    data-lng="116.420000"
+                    data-lat="39.930000"
+                    onclick="centerToLocation('北京东部', 116.420000, 39.930000)"
+                >
+                    <div class="location-name">🏢 北京东部</div>
+                    <div class="location-coords">[116.420000, 39.930000]</div>
+                </div>
+                
+                <div 
+                    class="location-item"
+                    data-lng="116.450000"
+                    data-lat="39.950000"
+                    onclick="centerToLocation('北京东北部', 116.450000, 39.950000)"
+                >
+                    <div class="location-name">🏘️ 北京东北部</div>
+                    <div class="location-coords">[116.450000, 39.950000]</div>
+                </div>
+            </div>
+            
+            <div class="status-info">
+                <div class="status-title">当前状态</div>
+                <div class="status-item">
+                    中心位置: <span id="current-location">未设置</span>
+                </div>
+                <div class="status-item">
+                    坐标: <span id="current-coords">无</span>
+                </div>
+                <div class="status-item">
+                    缩放级别: <span id="current-zoom">12</span>
+                </div>
+            </div>
+            
+            <div class="test-buttons">
+                <button class="btn btn-primary" onclick="testAllLocations()">测试所有位置</button>
+                <button class="btn" onclick="resetMap()">重置地图</button>
+            </div>
+            
+            <div class="log-area">
+                <div class="status-title">操作日志</div>
+                <div id="log-content">
+                    <div class="log-entry log-info">[页面加载] 地图初始化完成</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet地图库 -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        let map;
+        let currentLocation = null;
+        let markers = [];
+        
+        // 初始化地图
+        function initMap() {
+            // 创建地图实例
+            map = L.map('map').setView([39.90923, 116.397428], 12);
+            
+            // 添加OpenStreetMap图层
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // 添加点击事件监听
+            map.on('click', function(e) {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+                addLog(`地图点击: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`, 'info');
+            });
+            
+            // 添加缩放事件监听
+            map.on('zoomend', function() {
+                const zoom = map.getZoom();
+                document.getElementById('current-zoom').textContent = zoom;
+                addLog(`缩放级别: ${zoom}`, 'info');
+            });
+            
+            addLog('地图初始化完成', 'success');
+            updateStatus('未设置', '无');
+        }
+        
+        // 设置地图中心
+        function centerToLocation(name, lng, lat) {
+            if (!map) {
+                addLog('错误: 地图未初始化', 'error');
+                return;
+            }
+            
+            // 清除之前的标记
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            // 设置地图中心
+            map.setView([lat, lng], 14);
+            
+            // 添加标记
+            const marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup(`<b>${name}</b><br>坐标: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`);
+            markers.push(marker);
+            
+            // 更新当前状态
+            currentLocation = { name, lng, lat };
+            updateStatus(name, `[${lng.toFixed(6)}, ${lat.toFixed(6)}]`);
+            
+            // 更新选中状态
+            updateActiveLocation(lng, lat);
+            
+            // 添加日志
+            addLog(`地图中心切换到: ${name}`, 'success');
+            addLog(`坐标: [${lng.toFixed(6)}, ${lat.toFixed(6)}]`, 'info');
+        }
+        
+        // 更新状态显示
+        function updateStatus(location, coords) {
+            document.getElementById('current-location').textContent = location;
+            document.getElementById('current-coords').textContent = coords;
+        }
+        
+        // 更新选中状态
+        function updateActiveLocation(lng, lat) {
+            // 移除所有选中状态
+            document.querySelectorAll('.location-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 添加选中状态
+            document.querySelectorAll('.location-item').forEach(item => {
+                const itemLng = parseFloat(item.dataset.lng);
+                const itemLat = parseFloat(item.dataset.lat);
+                
+                if (Math.abs(itemLng - lng) < 0.000001 && Math.abs(itemLat - lat) < 0.000001) {
+                    item.classList.add('active');
+                }
+            });
+        }
+        
+        // 测试所有位置
+        function testAllLocations() {
+            const locations = [
+                { name: '天安门', lng: 116.397428, lat: 39.90923 },
+                { name: '北京东部', lng: 116.420000, lat: 39.930000 },
+                { name: '北京东北部', lng: 116.450000, lat: 39.950000 }
+            ];
+            
+            addLog('开始测试所有位置', 'info');
+            
+            locations.forEach((location, index) => {
+                setTimeout(() => {
+                    centerToLocation(location.name, location.lng, location.lat);
+                }, index * 2000); // 每2秒切换一次
+            });
+        }
+        
+        // 重置地图
+        function resetMap() {
+            if (!map) return;
+            
+            // 清除标记
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            // 重置视图
+            map.setView([39.90923, 116.397428], 12);
+            
+            // 清除状态
+            currentLocation = null;
+            updateStatus('未设置', '无');
+            updateActiveLocation(null, null);
+            
+            addLog('地图已重置', 'info');
+        }
+        
+        // 添加日志
+        function addLog(message, type = 'info') {
+            const logContent = document.getElementById('log-content');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            
+            logContent.appendChild(logEntry);
+            
+            // 保持最多20条日志
+            while (logContent.children.length > 20) {
+                logContent.removeChild(logContent.firstChild);
+            }
+            
+            // 滚动到底部
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+        
+        // 页面加载完成后初始化地图
+        window.onload = function() {
+            // 检查Leaflet是否加载成功
+            if (typeof L === 'undefined') {
+                addLog('错误: Leaflet地图库加载失败，请检查网络连接', 'error');
+                return;
+            }
+            
+            initMap();
+        };
+        
+        // 错误处理
+        window.onerror = function(msg, url, line) {
+            addLog(`JavaScript错误: ${msg}`, 'error');
+        };
+    </script>
+</body>
+</html> 

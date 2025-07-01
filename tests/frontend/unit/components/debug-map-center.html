@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地图中心点切换调试测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #1890ff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin-bottom: 10px;
+        }
+        
+        .content {
+            display: flex;
+            min-height: 600px;
+        }
+        
+        .map-area {
+            flex: 1;
+            position: relative;
+            background: #e8f4fd;
+            border: 2px solid #1890ff;
+            margin: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .map-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+        
+        .map-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            background: #ff4d4f;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+        
+        .vehicle-marker {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 500;
+        }
+        
+        .vehicle-marker:hover {
+            transform: scale(1.1);
+        }
+        
+        .vehicle-marker.selected {
+            border-color: #ff4d4f;
+            box-shadow: 0 0 0 4px rgba(255, 77, 79, 0.3);
+        }
+        
+        .control-panel {
+            width: 300px;
+            background: #f8f9fa;
+            padding: 20px;
+            border-left: 1px solid #dee2e6;
+        }
+        
+        .vehicle-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .vehicle-item:hover {
+            border-color: #1890ff;
+            background: #f0f8ff;
+        }
+        
+        .vehicle-item.selected {
+            border-color: #1890ff;
+            background: #e6f7ff;
+        }
+        
+        .vehicle-no {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .vehicle-coords {
+            font-size: 12px;
+            color: #666;
+            font-family: monospace;
+        }
+        
+        .status-panel {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #1890ff;
+        }
+        
+        .status-item {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .test-buttons {
+            margin-bottom: 20px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            margin: 5px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn:hover {
+            border-color: #1890ff;
+            color: #1890ff;
+        }
+        
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+            border-color: #1890ff;
+        }
+        
+        .btn-primary:hover {
+            background: #40a9ff;
+        }
+        
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        
+        .log-success { color: #28a745; }
+        .log-error { color: #dc3545; }
+        .log-info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>地图中心点切换调试测试</h1>
+                <p>简化版本 - 测试三台车不同坐标的点击切换功能</p>
+            </div>
+            
+            <div class="content">
+                <div class="map-area">
+                    <div class="map-grid"></div>
+                    
+                    <!-- 地图中心指示器 -->
+                    <div class="map-center" v-if="centerVehicle"></div>
+                    
+                    <!-- 车辆标记 -->
+                    <div 
+                        v-for="vehicle in vehicles" 
+                        :key="vehicle.id"
+                        class="vehicle-marker"
+                        :class="{ 'selected': centerVehicle && centerVehicle.id === vehicle.id }"
+                        :style="getVehicleStyle(vehicle.id)"
+                        @click="centerToVehicle(vehicle.id)"
+                    >
+                        {{ vehicle.vehicleNo.slice(-2) }}
+                    </div>
+                </div>
+                
+                <div class="control-panel">
+                    <div class="status-panel">
+                        <div class="status-title">当前状态</div>
+                        <div class="status-item">
+                            中心车辆: {{ centerVehicle ? centerVehicle.vehicleNo : '无' }}
+                        </div>
+                        <div class="status-item" v-if="centerVehicle">
+                            坐标: [{{ centerVehicle.position.lng.toFixed(6) }}, {{ centerVehicle.position.lat.toFixed(6) }}]
+                        </div>
+                    </div>
+                    
+                    <div class="test-buttons">
+                        <button class="btn btn-primary" @click="testAllVehicles">测试所有车辆</button>
+                        <button class="btn" @click="clearCenter">清空中心</button>
+                        <button class="btn" @click="checkState">检查状态</button>
+                    </div>
+                    
+                    <h3>车辆列表 (点击测试)</h3>
+                    <div>
+                        <div 
+                            v-for="vehicle in vehicles" 
+                            :key="vehicle.id"
+                            class="vehicle-item"
+                            :class="{ 'selected': centerVehicle && centerVehicle.id === vehicle.id }"
+                            @click="centerToVehicle(vehicle.id)"
+                        >
+                            <div class="vehicle-no">{{ vehicle.vehicleNo }}</div>
+                            <div class="vehicle-coords">
+                                [{{ vehiclePositions[vehicle.id].lng.toFixed(4) }}, {{ vehiclePositions[vehicle.id].lat.toFixed(4) }}]
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="log-area">
+                        <div class="status-title">操作日志</div>
+                        <div>
+                            <div 
+                                v-for="(log, index) in logs" 
+                                :key="index"
+                                class="log-entry"
+                                :class="`log-${log.type}`"
+                            >
+                                [{{ log.time }}] {{ log.message }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        const { createApp, ref } = Vue;
+
+        const app = createApp({
+            setup() {
+                const logs = ref([]);
+                const centerVehicle = ref(null);
+                
+                // 三台车的不同坐标
+                const vehicles = ref([
+                    { id: '001', vehicleNo: '京A12345' },
+                    { id: '002', vehicleNo: '京B67890' },
+                    { id: '003', vehicleNo: '京C11111' }
+                ]);
+                
+                const vehiclePositions = ref({
+                    '001': { lng: 116.397428, lat: 39.90923 },
+                    '002': { lng: 116.420000, lat: 39.930000 },
+                    '003': { lng: 116.450000, lat: 39.950000 }
+                });
+
+                const addLog = (message, type = 'info') => {
+                    logs.value.push({
+                        message,
+                        type,
+                        time: new Date().toLocaleTimeString()
+                    });
+                    if (logs.value.length > 20) {
+                        logs.value.shift();
+                    }
+                };
+
+                const centerToVehicle = (vehicleId) => {
+                    const vehicle = vehicles.value.find(v => v.id === vehicleId);
+                    const position = vehiclePositions.value[vehicleId];
+                    
+                    if (!vehicle || !position) {
+                        addLog(`错误: 车辆数据不存在 ${vehicleId}`, 'error');
+                        return;
+                    }
+                    
+                    centerVehicle.value = { ...vehicle, position };
+                    addLog(`成功: 地图中心切换到 ${vehicle.vehicleNo}`, 'success');
+                    addLog(`坐标: [${position.lng.toFixed(6)}, ${position.lat.toFixed(6)}]`, 'info');
+                };
+
+                const clearCenter = () => {
+                    centerVehicle.value = null;
+                    addLog('清空地图中心', 'info');
+                };
+
+                const checkState = () => {
+                    addLog('检查状态:', 'info');
+                    addLog(`中心车辆: ${centerVehicle.value?.vehicleNo || '无'}`, 'info');
+                    addLog(`车辆总数: ${vehicles.value.length}`, 'info');
+                };
+
+                const testAllVehicles = () => {
+                    addLog('开始测试所有车辆', 'info');
+                    vehicles.value.forEach((vehicle, index) => {
+                        setTimeout(() => {
+                            centerToVehicle(vehicle.id);
+                        }, index * 1500);
+                    });
+                };
+
+                const getVehicleStyle = (vehicleId) => {
+                    const position = vehiclePositions.value[vehicleId];
+                    if (!position) return { display: 'none' };
+                    
+                    const mapWidth = 800;
+                    const mapHeight = 500;
+                    const minLng = 116.39, maxLng = 116.46;
+                    const minLat = 39.90, maxLat = 39.96;
+                    
+                    const x = ((position.lng - minLng) / (maxLng - minLng)) * mapWidth;
+                    const y = ((maxLat - position.lat) / (maxLat - minLat)) * mapHeight;
+                    
+                    const colors = {
+                        '001': '#1890ff',
+                        '002': '#52c41a',
+                        '003': '#faad14'
+                    };
+                    
+                    return {
+                        left: `${Math.max(0, Math.min(mapWidth - 50, x))}px`,
+                        top: `${Math.max(0, Math.min(mapHeight - 50, y))}px`,
+                        backgroundColor: colors[vehicleId] || '#1890ff'
+                    };
+                };
+
+                // 初始化
+                addLog('页面加载完成', 'info');
+                addLog('点击车辆列表或地图标记进行测试', 'info');
+
+                return {
+                    vehicles,
+                    vehiclePositions,
+                    logs,
+                    centerVehicle,
+                    centerToVehicle,
+                    clearCenter,
+                    checkState,
+                    testAllVehicles,
+                    getVehicleStyle
+                };
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html> 

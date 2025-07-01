@@ -1,0 +1,61 @@
+{
+  "test_environment": {
+    "name": "test",
+    "description": "测试环境配置"
+  },
+  "frontend": {
+    "base_url": "http://localhost:3000",
+    "timeout": 10000,
+    "retry_attempts": 3
+  },
+  "backend": {
+    "base_url": "http://localhost:8000",
+    "timeout": 5000,
+    "retry_attempts": 3
+  },
+  "jt808server": {
+    "host": "localhost",
+    "port": 7611,
+    "timeout": 3000
+  },
+  "terminal_simulator": {
+    "host": "localhost",
+    "port": 7611,
+    "max_vehicles": 100,
+    "update_interval": 3000
+  },
+  "database": {
+    "test_url": "sqlite:///test.db",
+    "cleanup_after_test": true
+  },
+  "redis": {
+    "test_url": "redis://localhost:6379/1",
+    "cleanup_after_test": true
+  },
+  "performance": {
+    "load_test_duration": 300,
+    "stress_test_duration": 600,
+    "concurrent_users": 100,
+    "ramp_up_time": 60
+  },
+  "security": {
+    "test_credentials": {
+      "admin": {
+        "username": "admin",
+        "password": "test_password"
+      },
+      "user": {
+        "username": "user",
+        "password": "test_password"
+      }
+    }
+  },
+  "reporting": {
+    "output_dir": "reports",
+    "coverage_threshold": 80,
+    "performance_threshold": {
+      "response_time": 1000,
+      "throughput": 100
+    }
+  }
+} 
