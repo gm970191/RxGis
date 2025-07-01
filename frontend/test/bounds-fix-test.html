@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>边界调整修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>边界调整修复测试</h1>
+    
+    <div class="test-section">
+        <div class="test-title">边界计算测试</div>
+        <div>
+            <button onclick="testBoundsCalculation()">测试边界计算</button>
+            <button onclick="testBackupMethod()">测试备用方法</button>
+            <button onclick="clearResults()">清空结果</button>
+        </div>
+        <div id="testResult"></div>
+    </div>
+
+    <script>
+        // 模拟修复后的边界调整函数
+        function adjustMapBounds(positions) {
+            if (positions.length === 0) {
+                addResult('warning', '没有位置数据')
+                return
+            }
+
+            try {
+                // 使用高德地图的正确方式创建边界
+                // 首先找到最小和最大的经纬度
+                const lngs = positions.map(pos => pos[0])
+                const lats = positions.map(pos => pos[1])
+                
+                const minLng = Math.min(...lngs)
+                const maxLng = Math.max(...lngs)
+                const minLat = Math.min(...lats)
+                const maxLat = Math.max(...lats)
+                
+                addResult('info', `计算边界范围: minLng=${minLng.toFixed(6)}, maxLng=${maxLng.toFixed(6)}, minLat=${minLat.toFixed(6)}, maxLat=${maxLat.toFixed(6)}`)
+                
+                // 模拟创建边界对象
+                const bounds = {
+                    getSouthWest: function() {
+                        return { lng: minLng, lat: minLat }
+                    },
+                    getNorthEast: function() {
+                        return { lng: maxLng, lat: maxLat }
+                    }
+                }
+                
+                // 检查bounds是否有效
+                const southWest = bounds.getSouthWest()
+                const northEast = bounds.getNorthEast()
+                
+                addResult('info', `边界西南角: [${southWest.lng.toFixed(6)}, ${southWest.lat.toFixed(6)}]`)
+                addResult('info', `边界东北角: [${northEast.lng.toFixed(6)}, ${northEast.lat.toFixed(6)}]`)
+                
+                if (southWest && northEast && 
+                    !isNaN(southWest.lng) && !isNaN(southWest.lat) &&
+                    !isNaN(northEast.lng) && !isNaN(northEast.lat)) {
+                    addResult('success', '边界对象有效，可以使用setBounds方法')
+                    return { method: 'bounds', bounds: bounds }
+                } else {
+                    addResult('warning', '边界对象无效，使用备用方法')
+                    return useBackupMethod(minLng, maxLng, minLat, maxLat)
+                }
+            } catch (error) {
+                addResult('error', `边界计算失败: ${error.message}`)
+                return null
+            }
+        }
+
+        function useBackupMethod(minLng, maxLng, minLat, maxLat) {
+            // 备用方法：计算中心点和合适的缩放级别
+            const centerLng = (minLng + maxLng) / 2
+            const centerLat = (minLat + maxLat) / 2
+            
+            // 计算合适的缩放级别
+            const lngDiff = maxLng - minLng
+            const latDiff = maxLat - minLat
+            const maxDiff = Math.max(lngDiff, latDiff)
+            
+            // 根据经纬度差值计算缩放级别
+            let zoom = 15 // 默认缩放级别
+            if (maxDiff > 0.1) zoom = 10
+            else if (maxDiff > 0.05) zoom = 11
+            else if (maxDiff > 0.02) zoom = 12
+            else if (maxDiff > 0.01) zoom = 13
+            else if (maxDiff > 0.005) zoom = 14
+            else if (maxDiff > 0.002) zoom = 15
+            else zoom = 16
+            
+            addResult('info', `备用方法: 中心点[${centerLng.toFixed(6)}, ${centerLat.toFixed(6)}], 缩放级别${zoom}, 最大差值${maxDiff.toFixed(6)}`)
+            addResult('success', '备用方法计算成功')
+            
+            return { method: 'backup', center: [centerLng, centerLat], zoom: zoom }
+        }
+
+        function testBoundsCalculation() {
+            addResult('info', '=== 开始测试边界计算 ===')
+            
+            // 测试用例1：两个有效位置
+            const positions1 = [
+                [117.37904737061902, 39.97948288685001],
+                [116.98102342571613, 39.59325848556515]
+            ]
+            addResult('info', '测试用例1: 两个有效位置')
+            const result1 = adjustMapBounds(positions1)
+            
+            // 测试用例2：多个位置
+            const positions2 = [
+                [116.397428, 39.90923],
+                [116.772072, 39.921687],
+                [116.665438, 40.085747],
+                [117.321559, 39.902462]
+            ]
+            addResult('info', '测试用例2: 多个位置')
+            const result2 = adjustMapBounds(positions2)
+            
+            // 测试用例3：单个位置
+            const positions3 = [
+                [116.397428, 39.90923]
+            ]
+            addResult('info', '测试用例3: 单个位置')
+            const result3 = adjustMapBounds(positions3)
+            
+            addResult('info', '=== 边界计算测试完成 ===')
+        }
+
+        function testBackupMethod() {
+            addResult('info', '=== 开始测试备用方法 ===')
+            
+            // 模拟边界对象无效的情况
+            const minLng = 116.98102342571613
+            const maxLng = 117.37904737061902
+            const minLat = 39.59325848556515
+            const maxLat = 39.97948288685001
+            
+            const result = useBackupMethod(minLng, maxLng, minLat, maxLat)
+            
+            if (result && result.method === 'backup') {
+                addResult('success', `备用方法测试成功: 中心点[${result.center[0].toFixed(6)}, ${result.center[1].toFixed(6)}], 缩放级别${result.zoom}`)
+            } else {
+                addResult('error', '备用方法测试失败')
+            }
+            
+            addResult('info', '=== 备用方法测试完成 ===')
+        }
+
+        function addResult(type, message) {
+            const container = document.getElementById('testResult')
+            const div = document.createElement('div')
+            div.className = `test-result ${type}`
+            div.textContent = message
+            container.appendChild(div)
+        }
+
+        function clearResults() {
+            document.getElementById('testResult').innerHTML = ''
+        }
+
+        // 页面加载时自动运行测试
+        window.onload = function() {
+            console.log('边界调整修复测试页面已加载')
+            testBoundsCalculation()
+        }
+    </script>
+</body>
+</html> 

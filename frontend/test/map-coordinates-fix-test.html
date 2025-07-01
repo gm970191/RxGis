@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地图坐标验证修复测试</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .coordinates-input {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            align-items: center;
+        }
+        input {
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>地图坐标验证修复测试</h1>
+        
+        <div class="test-section">
+            <div class="test-title">坐标验证函数测试</div>
+            <div class="coordinates-input">
+                <label>经度: <input type="number" id="lngInput" value="116.397428" step="0.000001"></label>
+                <label>纬度: <input type="number" id="latInput" value="39.90923" step="0.000001"></label>
+                <button onclick="testCoordinates()">测试坐标</button>
+            </div>
+            <div id="coordinateTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">无效坐标测试</div>
+            <button onclick="testInvalidCoordinates()">测试无效坐标</button>
+            <div id="invalidTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">边界情况测试</div>
+            <button onclick="testBoundaryCases()">测试边界情况</button>
+            <div id="boundaryTestResult"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">模拟车辆位置数据测试</div>
+            <button onclick="testVehiclePositions()">测试车辆位置数据</button>
+            <div id="vehicleTestResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟坐标验证函数
+        function isValidCoordinates(position) {
+            if (!position || typeof position.lng !== 'number' || typeof position.lat !== 'number') {
+                return false
+            }
+            
+            // 检查是否为NaN
+            if (isNaN(position.lng) || isNaN(position.lat)) {
+                return false
+            }
+            
+            // 检查经纬度范围是否合理
+            const isValidLng = position.lng >= -180 && position.lng <= 180
+            const isValidLat = position.lat >= -90 && position.lat <= 90
+            
+            // 检查是否为0坐标（通常表示无效坐标）
+            const isNotZero = position.lng !== 0 || position.lat !== 0
+            
+            // 检查是否为有限数字
+            const isFinite = isFinite(position.lng) && isFinite(position.lat)
+            
+            return isValidLng && isValidLat && isNotZero && isFinite
+        }
+
+        // 安全设置地图中心函数
+        function safeSetCenter(lng, lat) {
+            // 确保坐标是数字类型
+            const numLng = Number(lng)
+            const numLat = Number(lat)
+            
+            // 验证坐标
+            if (typeof numLng !== 'number' || typeof numLat !== 'number' || 
+                isNaN(numLng) || isNaN(numLat) ||
+                !isFinite(numLng) || !isFinite(numLat) ||
+                numLng < -180 || numLng > 180 || numLat < -90 || numLat > 90) {
+                console.warn('无效的坐标:', { lng: numLng, lat: numLat })
+                return false
+            }
+            
+            try {
+                // 模拟设置地图中心
+                console.log('设置地图中心:', [numLng, numLat])
+                return true
+            } catch (error) {
+                console.error('设置地图中心失败:', error)
+                return false
+            }
+        }
+
+        // 测试坐标验证
+        function testCoordinates() {
+            const lng = parseFloat(document.getElementById('lngInput').value)
+            const lat = parseFloat(document.getElementById('latInput').value)
+            const position = { lng, lat }
+            
+            const result = isValidCoordinates(position)
+            const resultDiv = document.getElementById('coordinateTestResult')
+            
+            if (result) {
+                resultDiv.innerHTML = `<div class="test-result success">✅ 坐标有效: [${lng}, ${lat}]</div>`
+            } else {
+                resultDiv.innerHTML = `<div class="test-result error">❌ 坐标无效: [${lng}, ${lat}]</div>`
+            }
+        }
+
+        // 测试无效坐标
+        function testInvalidCoordinates() {
+            const invalidCoordinates = [
+                { lng: NaN, lat: 39.90923, name: 'NaN经度' },
+                { lng: 116.397428, lat: NaN, name: 'NaN纬度' },
+                { lng: 'invalid', lat: 39.90923, name: '字符串经度' },
+                { lng: 116.397428, lat: 'invalid', name: '字符串纬度' },
+                { lng: null, lat: 39.90923, name: 'null经度' },
+                { lng: 116.397428, lat: null, name: 'null纬度' },
+                { lng: undefined, lat: 39.90923, name: 'undefined经度' },
+                { lng: 116.397428, lat: undefined, name: 'undefined纬度' },
+                { lng: 0, lat: 0, name: '零坐标' },
+                { lng: 181, lat: 39.90923, name: '超出经度范围' },
+                { lng: 116.397428, lat: 91, name: '超出纬度范围' },
+                { lng: -181, lat: 39.90923, name: '负超出经度范围' },
+                { lng: 116.397428, lat: -91, name: '负超出纬度范围' },
+                { lng: Infinity, lat: 39.90923, name: '无穷大经度' },
+                { lng: 116.397428, lat: -Infinity, name: '负无穷大纬度' }
+            ]
+
+            let resultHtml = '<div class="test-title">无效坐标测试结果:</div>'
+            
+            invalidCoordinates.forEach(coord => {
+                const isValid = isValidCoordinates(coord)
+                const safeCenter = safeSetCenter(coord.lng, coord.lat)
+                
+                if (!isValid && !safeCenter) {
+                    resultHtml += `<div class="test-result success">✅ ${coord.name}: 正确识别为无效坐标</div>`
+                } else {
+                    resultHtml += `<div class="test-result error">❌ ${coord.name}: 错误识别为有效坐标</div>`
+                }
+            })
+            
+            document.getElementById('invalidTestResult').innerHTML = resultHtml
+        }
+
+        // 测试边界情况
+        function testBoundaryCases() {
+            const boundaryCases = [
+                { lng: -180, lat: -90, name: '最小边界' },
+                { lng: 180, lat: 90, name: '最大边界' },
+                { lng: -179.999999, lat: -89.999999, name: '接近最小边界' },
+                { lng: 179.999999, lat: 89.999999, name: '接近最大边界' },
+                { lng: 0.000001, lat: 0.000001, name: '接近零坐标' },
+                { lng: 116.397428, lat: 39.90923, name: '北京坐标' },
+                { lng: -74.006, lat: 40.7128, name: '纽约坐标' },
+                { lng: 139.6917, lat: 35.6895, name: '东京坐标' }
+            ]
+
+            let resultHtml = '<div class="test-title">边界情况测试结果:</div>'
+            
+            boundaryCases.forEach(coord => {
+                const isValid = isValidCoordinates(coord)
+                const safeCenter = safeSetCenter(coord.lng, coord.lat)
+                
+                if (isValid && safeCenter) {
+                    resultHtml += `<div class="test-result success">✅ ${coord.name}: 正确识别为有效坐标</div>`
+                } else {
+                    resultHtml += `<div class="test-result error">❌ ${coord.name}: 错误识别为无效坐标</div>`
+                }
+            })
+            
+            document.getElementById('boundaryTestResult').innerHTML = resultHtml
+        }
+
+        // 测试车辆位置数据
+        function testVehiclePositions() {
+            // 模拟车辆位置数据
+            const vehiclePositions = {
+                '001': { lng: 116.397428, lat: 39.90923, speed: 60, direction: 90 },
+                '002': { lng: NaN, lat: 39.90923, speed: 0, direction: 0 }, // 无效坐标
+                '003': { lng: 116.397428, lat: 'invalid', speed: 30, direction: 180 }, // 无效坐标
+                '004': { lng: 0, lat: 0, speed: 0, direction: 0 }, // 零坐标
+                '005': { lng: 181, lat: 39.90923, speed: 45, direction: 270 }, // 超出范围
+                '006': { lng: 116.397428, lat: 39.90923, speed: 75, direction: 45 } // 有效坐标
+            }
+
+            let resultHtml = '<div class="test-title">车辆位置数据测试结果:</div>'
+            
+            Object.keys(vehiclePositions).forEach(vehicleId => {
+                const position = vehiclePositions[vehicleId]
+                const isValid = isValidCoordinates(position)
+                const safeCenter = safeSetCenter(position.lng, position.lat)
+                
+                if (isValid && safeCenter) {
+                    resultHtml += `<div class="test-result success">✅ 车辆 ${vehicleId}: 坐标有效 [${position.lng}, ${position.lat}]</div>`
+                } else {
+                    resultHtml += `<div class="test-result error">❌ 车辆 ${vehicleId}: 坐标无效 [${position.lng}, ${position.lat}]</div>`
+                }
+            })
+            
+            document.getElementById('vehicleTestResult').innerHTML = resultHtml
+        }
+
+        // 页面加载时自动运行一些测试
+        window.onload = function() {
+            console.log('地图坐标验证修复测试页面已加载')
+            testCoordinates()
+        }
+    </script>
+</body>
+</html> 

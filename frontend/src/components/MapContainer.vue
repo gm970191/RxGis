@@ -280,6 +280,20 @@ export default {
     const createVehicleMarker = (vehicle, position) => {
       if (!map.value || !window.AMap) return null
       
+      // 验证坐标有效性
+      if (!isValidCoordinates(position)) {
+        console.warn(`车辆 ${vehicle.id} 坐标无效，跳过创建标记:`, position)
+        return null
+      }
+      
+      // 确保坐标是有效的数字
+      const lng = Number(position.lng)
+      const lat = Number(position.lat)
+      if (isNaN(lng) || isNaN(lat)) {
+        console.warn(`车辆 ${vehicle.id} 坐标包含NaN，跳过创建标记:`, { lng, lat })
+        return null
+      }
+      
       // 根据状态设置车牌颜色
       const plateColor = getPlateColor(vehicle.status)
       
@@ -293,19 +307,24 @@ export default {
         <div class="vehicle-plate" style="background-color: ${plateColor}">${vehicle.vehicleNo}</div>
       `
       
-      const marker = new window.AMap.Marker({
-        position: [position.lng, position.lat],
-        title: vehicle.vehicleNo,
-        content: markerContent,
-        offset: new window.AMap.Pixel(-20, -40) // 调整偏移量以适应车牌显示
-      })
-      
-      // 添加点击事件
-      marker.on('click', () => {
-        showVehicleInfo(vehicle, position)
-      })
-      
-      return marker
+      try {
+        const marker = new window.AMap.Marker({
+          position: [lng, lat],
+          title: vehicle.vehicleNo,
+          content: markerContent,
+          offset: new window.AMap.Pixel(-20, -40) // 调整偏移量以适应车牌显示
+        })
+        
+        // 添加点击事件
+        marker.on('click', () => {
+          showVehicleInfo(vehicle, position)
+        })
+        
+        return marker
+      } catch (error) {
+        console.error(`创建车辆 ${vehicle.id} 标记失败:`, error)
+        return null
+      }
     }
     
     // 更新车辆位置
@@ -402,35 +421,106 @@ export default {
       })
       
       // 调整地图视野以显示所有选中的车辆
-      adjustMapBounds()
+      // 只有在有有效位置数据时才调整视野
+      const hasValidPositions = currentSelected.some(vehicleId => {
+        const pos = vehiclePositions.value[vehicleId]
+        return pos && isValidCoordinates(pos)
+      })
+      
+      if (hasValidPositions) {
+        adjustMapBounds()
+      } else {
+        console.warn('选中的车辆都没有有效的位置数据，跳过视野调整')
+      }
     }
     
     // 调整地图视野
     const adjustMapBounds = () => {
       if (!map.value || selectedVehicles.value.length === 0) return
       
+      console.log('开始调整地图视野，选中的车辆:', selectedVehicles.value)
+      
       const positions = []
       selectedVehicles.value.forEach(vehicleId => {
         const position = vehiclePositions.value[vehicleId]
+        console.log(`车辆 ${vehicleId} 的位置数据:`, position)
+        
         if (position && isValidCoordinates(position)) {
-          positions.push([position.lng, position.lat])
+          // 确保坐标是有效的数字
+          const lng = Number(position.lng)
+          const lat = Number(position.lat)
+          if (!isNaN(lng) && !isNaN(lat)) {
+            positions.push([lng, lat])
+            console.log(`车辆 ${vehicleId} 坐标有效: [${lng}, ${lat}]`)
+          } else {
+            console.warn(`车辆 ${vehicleId} 坐标转换后为NaN: [${lng}, ${lat}]`)
+          }
+        } else {
+          console.warn(`车辆 ${vehicleId} 位置数据无效或不存在:`, position)
         }
       })
       
+      console.log('收集到的有效位置:', positions)
+      
       if (positions.length > 0) {
         try {
-          const bounds = new window.AMap.Bounds()
-          positions.forEach(pos => {
-            bounds.extend(pos)
+          // 使用高德地图的正确方式创建边界
+          // 首先找到最小和最大的经纬度
+          const lngs = positions.map(pos => pos[0])
+          const lats = positions.map(pos => pos[1])
+          
+          const minLng = Math.min(...lngs)
+          const maxLng = Math.max(...lngs)
+          const minLat = Math.min(...lats)
+          const maxLat = Math.max(...lats)
+          
+          console.log('计算边界范围:', {
+            minLng, maxLng, minLat, maxLat,
+            positions: positions
           })
           
-          // 设置地图视野，包含所有选中的车辆
-          map.value.setBounds(bounds, {
-            padding: [50, 50, 50, 50] // 添加内边距
-          })
+          // 创建边界对象，使用西南角和东北角坐标
+          const bounds = new window.AMap.Bounds(
+            [minLng, minLat], // 西南角
+            [maxLng, maxLat]  // 东北角
+          )
+          
+          // 检查bounds是否有效
+          const southWest = bounds.getSouthWest()
+          const northEast = bounds.getNorthEast()
+          console.log('边界西南角:', southWest)
+          console.log('边界东北角:', northEast)
+          
+          if (southWest && northEast && 
+              !isNaN(southWest.lng) && !isNaN(southWest.lat) &&
+              !isNaN(northEast.lng) && !isNaN(northEast.lat)) {
+            try {
+              // 设置地图视野，包含所有选中的车辆
+              map.value.setBounds(bounds)
+              console.log('地图视野调整成功')
+            } catch (boundsError) {
+              console.warn('setBounds失败，使用备用方法:', boundsError)
+              // 如果setBounds失败，使用备用方法
+              useBackupMethod(minLng, maxLng, minLat, maxLat)
+            }
+          } else {
+            console.warn('无效的地图边界，使用备用方法调整视野')
+            useBackupMethod(minLng, maxLng, minLat, maxLat)
+          }
         } catch (error) {
           console.error('调整地图视野失败:', error)
+          console.error('错误详情:', {
+            selectedVehicles: selectedVehicles.value,
+            positions: positions,
+            vehiclePositions: vehiclePositions.value
+          })
         }
+      } else {
+        console.warn('没有有效的车辆位置数据，跳过视野调整')
+        console.warn('调试信息:', {
+          selectedVehicles: selectedVehicles.value,
+          vehiclePositions: vehiclePositions.value
+        })
       }
     }
     
@@ -570,7 +660,17 @@ export default {
           focusOnVehicle(newSelected[0])
         } else {
           // 多个车辆时，调整视野显示所有车辆
-          adjustMapBounds()
+          // 只有在有有效位置数据时才调整视野
+          const hasValidPositions = newSelected.some(vehicleId => {
+            const pos = vehiclePositions.value[vehicleId]
+            return pos && isValidCoordinates(pos)
+          })
+          
+          if (hasValidPositions) {
+            adjustMapBounds()
+          } else {
+            console.warn('选中的车辆都没有有效的位置数据，跳过视野调整')
+          }
         }
       } else {
         // 没有选中车辆时，清空状态栏
@@ -627,6 +727,43 @@ export default {
       }
     }, { immediate: true })
     
+    // 备用视野调整方法
+    const useBackupMethod = (minLng, maxLng, minLat, maxLat) => {
+      // 备用方法：计算中心点和合适的缩放级别
+      const centerLng = (minLng + maxLng) / 2
+      const centerLat = (minLat + maxLat) / 2
+      
+      // 计算合适的缩放级别
+      const lngDiff = maxLng - minLng
+      const latDiff = maxLat - minLat
+      const maxDiff = Math.max(lngDiff, latDiff)
+      
+      // 根据经纬度差值计算缩放级别
+      let zoom = 15 // 默认缩放级别
+      if (maxDiff > 0.1) zoom = 10
+      else if (maxDiff > 0.05) zoom = 11
+      else if (maxDiff > 0.02) zoom = 12
+      else if (maxDiff > 0.01) zoom = 13
+      else if (maxDiff > 0.005) zoom = 14
+      else if (maxDiff > 0.002) zoom = 15
+      else zoom = 16
+      
+      console.log('使用备用方法调整视野:', {
+        center: [centerLng, centerLat],
+        zoom: zoom,
+        maxDiff: maxDiff
+      })
+      
+      try {
+        // 设置地图中心和缩放级别
+        map.value.setCenter([centerLng, centerLat])
+        map.value.setZoom(zoom)
+        console.log('备用视野调整成功')
+      } catch (error) {
+        console.error('备用视野调整失败:', error)
+      }
+    }
+    
     // 检查坐标是否有效
     const isValidCoordinates = (position) => {
       if (!position || typeof position.lng !== 'number' || typeof position.lat !== 'number') {
@@ -645,23 +782,31 @@ export default {
       // 检查是否为0坐标（通常表示无效坐标）
       const isNotZero = position.lng !== 0 || position.lat !== 0
       
-      return isValidLng && isValidLat && isNotZero
+      // 检查是否为有限数字
+      const isFiniteNumber = isFinite(position.lng) && isFinite(position.lat)
+      
+      return isValidLng && isValidLat && isNotZero && isFiniteNumber
     }
     
     // 安全设置地图中心
     const safeSetCenter = (lng, lat) => {
       if (!map.value) return false
       
+      // 确保坐标是数字类型
+      const numLng = Number(lng)
+      const numLat = Number(lat)
+      
       // 验证坐标
-      if (typeof lng !== 'number' || typeof lat !== 'number' || 
-          isNaN(lng) || isNaN(lat) ||
-          lng < -180 || lng > 180 || lat < -90 || lat > 90) {
-        console.warn('无效的坐标:', { lng, lat })
+      if (typeof numLng !== 'number' || typeof numLat !== 'number' || 
+          isNaN(numLng) || isNaN(numLat) ||
+          !isFinite(numLng) || !isFinite(numLat) ||
+          numLng < -180 || numLng > 180 || numLat < -90 || numLat > 90) {
+        console.warn('无效的坐标:', { lng: numLng, lat: numLat })
         return false
       }
       
       try {
-        map.value.setCenter([lng, lat])
+        map.value.setCenter([numLng, numLat])
         return true
       } catch (error) {
         console.error('设置地图中心失败:', error)
@@ -676,15 +821,20 @@ export default {
         const marker = markers.value[vehicleId]
         const position = vehiclePositions.value[vehicleId]
         
-        if (marker && position) {
-          marker.setPosition([position.lng, position.lat])
+        if (marker && position && isValidCoordinates(position)) {
+          // 确保坐标是有效的数字
+          const lng = Number(position.lng)
+          const lat = Number(position.lat)
+          if (!isNaN(lng) && !isNaN(lat)) {
+            marker.setPosition([lng, lat])
+          }
         }
       })
       
       // 更新状态栏中的位置信息
       if (lastSelectedVehicle.value) {
         const position = vehiclePositions.value[lastSelectedVehicle.value.id]
-        if (position) {
+        if (position && isValidCoordinates(position)) {
           lastSelectedVehiclePosition.value = position
         }
       }
