@@ -46,13 +46,123 @@
     </div>
     
     <div class="vehicle-list-content" v-show="!isCollapsed">
-      <div class="vehicle-list-toolbar">
-        <div class="toolbar-left">
+      <!-- 过滤工具栏 -->
+      <div class="vehicle-filter-toolbar" v-show="showFilterPanel">
+        <div class="filter-row">
+          <el-input
+            v-model="filters.vehicleNo"
+            placeholder="车牌号"
+            size="small"
+            clearable
+            @input="applyFilters"
+            style="width: 120px;"
+          >
+            <template #prefix>
+              <el-icon><Van /></el-icon>
+            </template>
+          </el-input>
+          
+          <el-input
+            v-model="filters.terminalId"
+            placeholder="终端号码"
+            size="small"
+            clearable
+            @input="applyFilters"
+            style="width: 120px;"
+          >
+            <template #prefix>
+              <el-icon><Monitor /></el-icon>
+            </template>
+          </el-input>
+          
+          <el-select
+            v-model="filters.status"
+            placeholder="状态"
+            size="small"
+            clearable
+            @change="applyFilters"
+            style="width: 100px;"
+          >
+            <el-option
+              v-for="option in statusOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
+        </div>
+        
+        <div class="filter-row">
+          <el-select
+            v-model="filters.vehicleType"
+            placeholder="车辆类型"
+            size="small"
+            clearable
+            @change="applyFilters"
+            style="width: 120px;"
+          >
+            <el-option
+              v-for="option in vehicleTypeOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
+          
+          <el-select
+            v-model="filters.groupId"
+            placeholder="车组"
+            size="small"
+            clearable
+            filterable
+            remote
+            :remote-method="filterGroupOptions"
+            :loading="groupLoading"
+            @change="applyFilters"
+            style="width: 140px;"
+          >
+            <el-option
+              v-for="option in filteredGroupOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
+          
+          <el-select
+            v-model="filters.company"
+            placeholder="公司"
+            size="small"
+            clearable
+            filterable
+            remote
+            :remote-method="filterCompanyOptions"
+            :loading="companyLoading"
+            @change="applyFilters"
+            style="width: 140px;"
+          >
+            <el-option
+              v-for="option in filteredCompanyOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
+        </div>
+        
+        <div class="filter-actions">
+          <el-button 
+            size="small" 
+            @click="resetFilters"
+            :disabled="!hasActiveFiltersComputed"
+          >
+            重置
+          </el-button>
           <el-button 
             size="small" 
             type="primary" 
             @click="selectAll"
-            :disabled="vehicles.length === 0"
+            :disabled="filteredVehicles.length === 0"
           >
             全选
           </el-button>
@@ -65,14 +175,38 @@
           </el-button>
         </div>
         
+        <div class="filter-stats">
+          <span class="stats-info">
+            显示: {{ filteredVehicles.length }}/{{ allVehicles.length }} 
+            ({{ filterStats.percentage }}%)
+          </span>
+          <span v-if="hasActiveFiltersComputed" class="active-filters">
+            <el-icon><Filter /></el-icon>
+            已过滤
+          </span>
+        </div>
+      </div>
+      
+      <div class="vehicle-list-toolbar">
+        <div class="toolbar-left">
+          <span class="selection-info">已选择: {{ selectedVehicles.length }}/{{ filteredVehicles.length }}</span>
+        </div>
+        
         <div class="toolbar-right">
-          <span class="selection-info">已选择: {{ selectedVehicles.length }}/{{ vehicles.length }}</span>
+          <el-button 
+            size="small" 
+            @click="toggleFilterPanel"
+            :type="showFilterPanel ? 'primary' : ''"
+          >
+            <el-icon><Filter /></el-icon>
+            {{ showFilterPanel ? '隐藏过滤' : '显示过滤' }}
+          </el-button>
         </div>
       </div>
       
       <div class="vehicle-list-items">
         <div 
-          v-for="vehicle in vehicles" 
+          v-for="vehicle in filteredVehicles" 
           :key="vehicle.id"
           class="vehicle-item"
           :class="{ 'selected': isCurrentViewVehicle(vehicle.id) }"
@@ -89,6 +223,7 @@
             <div class="vehicle-details">
               <span class="vehicle-type">{{ vehicle.vehicleType }}</span>
               <span class="vehicle-owner">{{ vehicle.ownerName }}</span>
+              <span class="vehicle-group" v-if="vehicle.groupName">{{ vehicle.groupName }}</span>
             </div>
           </div>
           
@@ -107,6 +242,11 @@
               <span class="direction">{{ getVehiclePosition(vehicle.id).direction }}°</span>
             </div>
           </div>
+        </div>
+        
+        <!-- 无数据提示 -->
+        <div v-if="filteredVehicles.length === 0" class="no-data">
+          <el-empty description="暂无符合条件的车辆" />
         </div>
       </div>
     </div>
@@ -136,9 +276,27 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useVehicleStore } from '@/stores/vehicle'
-import { mockVehicles } from '@/utils/mockData'
+import { allMockVehicles } from '@/utils/mockData'
+import { 
+  filterVehicles, 
+  getStatusOptions, 
+  getVehicleTypeOptionsWithAll, 
+  getGroupOptionsWithAll, 
+  getCompanyOptionsWithAll,
+  getDefaultFilters,
+  hasActiveFilters,
+  getFilterStats
+} from '@/utils/filterUtils'
+import { 
+  Rank, 
+  ArrowLeft, 
+  ArrowRight, 
+  Van, 
+  Monitor, 
+  Filter 
+} from '@element-plus/icons-vue'
 
 export default {
   name: 'VehicleList',
@@ -159,9 +317,9 @@ export default {
     const startPosition = ref({ x: 0, y: 0 })
     const startSize = ref({ width: 0, height: 0 })
     
-    // 初始化车辆数据
+    // 初始化车辆数据 - 使用100辆车的数据
     if (vehicleStore.vehicles.length === 0) {
-      vehicleStore.setVehicles(mockVehicles)
+      vehicleStore.setVehicles(allMockVehicles)
     }
     
     // 默认选中第一辆车
@@ -169,9 +327,36 @@ export default {
       vehicleStore.selectVehicle(vehicleStore.getAllVehicles[0].id)
     }
     
-    const vehicles = computed(() => vehicleStore.getAllVehicles)
+    const allVehicles = computed(() => vehicleStore.getAllVehicles)
     const selectedVehicles = computed(() => vehicleStore.getSelectedVehicles)
     const vehiclePositions = computed(() => vehicleStore.getVehiclePositions)
+    
+    // 过滤相关
+    const filters = ref(getDefaultFilters())
+    const showFilterPanel = ref(false)
+    
+    // 过滤选项
+    const statusOptions = computed(() => getStatusOptions())
+    const vehicleTypeOptions = computed(() => getVehicleTypeOptionsWithAll(allVehicles.value))
+    const groupOptions = computed(() => getGroupOptionsWithAll(allVehicles.value))
+    const companyOptions = computed(() => getCompanyOptionsWithAll(allVehicles.value))
+    
+    // 模糊匹配相关
+    const filteredGroupOptions = ref([])
+    const filteredCompanyOptions = ref([])
+    const groupLoading = ref(false)
+    const companyLoading = ref(false)
+    
+    // 初始化过滤选项
+    filteredGroupOptions.value = groupOptions.value
+    filteredCompanyOptions.value = companyOptions.value
+    
+    // 过滤后的车辆
+    const filteredVehicles = computed(() => filterVehicles(allVehicles.value, filters.value))
+    
+    // 过滤统计
+    const filterStats = computed(() => getFilterStats(allVehicles.value, filteredVehicles.value))
+    const hasActiveFiltersComputed = computed(() => hasActiveFilters(filters.value))
     
     // 计算容器样式
     const containerStyle = computed(() => ({
@@ -187,6 +372,52 @@ export default {
     
     const getVehiclePosition = (vehicleId) => {
       return vehiclePositions.value[vehicleId]
+    }
+    
+    // 过滤相关方法
+    const applyFilters = () => {
+      // 过滤逻辑已经在computed中处理
+      console.log('应用过滤条件:', filters.value)
+    }
+    
+    const resetFilters = () => {
+      filters.value = getDefaultFilters()
+    }
+    
+    const toggleFilterPanel = () => {
+      showFilterPanel.value = !showFilterPanel.value
+      console.log('过滤面板状态切换:', showFilterPanel.value ? '显示' : '隐藏')
+    }
+    
+    // 模糊匹配方法
+    const filterGroupOptions = (query) => {
+      if (query !== '') {
+        groupLoading.value = true
+        setTimeout(() => {
+          const filtered = groupOptions.value.filter(option => 
+            option.label.toLowerCase().includes(query.toLowerCase())
+          )
+          filteredGroupOptions.value = filtered
+          groupLoading.value = false
+        }, 200)
+      } else {
+        filteredGroupOptions.value = groupOptions.value
+      }
+    }
+    
+    const filterCompanyOptions = (query) => {
+      if (query !== '') {
+        companyLoading.value = true
+        setTimeout(() => {
+          const filtered = companyOptions.value.filter(option => 
+            option.label.toLowerCase().includes(query.toLowerCase())
+          )
+          filteredCompanyOptions.value = filtered
+          companyLoading.value = false
+        }, 200)
+      } else {
+        filteredCompanyOptions.value = companyOptions.value
+      }
     }
     
     const toggleCollapse = () => {
@@ -219,22 +450,26 @@ export default {
     }
     
     const selectAll = () => {
-      vehicles.value.forEach(vehicle => {
-        vehicleStore.selectVehicle(vehicle.id)
-      })
+      const allVehicleIds = filteredVehicles.value.map(v => v.id)
+      // 清空当前选择，然后选择所有过滤后的车辆
+      vehicleStore.clearSelection()
+      allVehicleIds.forEach(id => vehicleStore.selectVehicle(id))
     }
     
     const clearSelection = () => {
       vehicleStore.clearSelection()
+      console.log('清空选择完成，当前选中车辆数:', vehicleStore.getSelectedVehicles.length)
     }
     
-    const movingCount = computed(() => vehicles.value.filter(vehicle => vehicle.status === 1).length)
-    const stoppedCount = computed(() => vehicles.value.filter(vehicle => vehicle.status === 2).length)
-    const offlineCount = computed(() => vehicles.value.filter(vehicle => vehicle.status === 0).length)
+    // 使用store中的统计数据
+    const vehicleStats = computed(() => vehicleStore.getVehicleStats)
+    const movingCount = computed(() => vehicleStats.value.online)
+    const stoppedCount = computed(() => vehicleStats.value.parking)
+    const offlineCount = computed(() => vehicleStats.value.offline)
     const onlinePercentage = computed(() => {
-      const totalVehicles = vehicles.value.length
-      const onlineVehicles = movingCount.value
-      return totalVehicles > 0 ? ((onlineVehicles / totalVehicles) * 100).toFixed(2) : '0.00'
+      const totalVehicles = vehicleStats.value.total
+      const onlineVehicles = vehicleStats.value.online + vehicleStats.value.parking
+      return totalVehicles > 0 ? ((onlineVehicles / totalVehicles) * 100).toFixed(1) : '0.0'
     })
     
     const getStatusType = (status) => {
@@ -337,6 +572,12 @@ export default {
       document.removeEventListener('mouseup', stopResize)
     }
     
+    // 监听车辆数据变化，更新过滤选项
+    watch(allVehicles, () => {
+      filteredGroupOptions.value = groupOptions.value
+      filteredCompanyOptions.value = companyOptions.value
+    }, { deep: true })
+    
     // 清理事件监听器
     onUnmounted(() => {
       document.removeEventListener('mousemove', handleDrag)
@@ -349,11 +590,29 @@ export default {
       isCollapsed,
       containerRef,
       containerStyle,
-      vehicles,
+      allVehicles,
+      filteredVehicles,
       selectedVehicles,
       vehiclePositions,
+      filters,
+      showFilterPanel,
+      statusOptions,
+      vehicleTypeOptions,
+      groupOptions,
+      companyOptions,
+      filteredGroupOptions,
+      filteredCompanyOptions,
+      groupLoading,
+      companyLoading,
+      filterStats,
+      hasActiveFiltersComputed,
       isSelected,
       getVehiclePosition,
+      applyFilters,
+      resetFilters,
+      filterGroupOptions,
+      filterCompanyOptions,
+      toggleFilterPanel,
       toggleCollapse,
       toggleVehicleSelection,
       selectAll,
@@ -497,6 +756,49 @@ export default {
   overflow: hidden;
 }
 
+/* 过滤工具栏样式 */
+.vehicle-filter-toolbar {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.filter-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
+
+.stats-info {
+  font-weight: 500;
+}
+
+.active-filters {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #1890ff;
+  font-weight: 500;
+}
+
 /* 工具栏 */
 .vehicle-list-toolbar {
   padding: 12px 16px;
@@ -589,6 +891,12 @@ export default {
   margin-right: 8px;
 }
 
+.vehicle-group {
+  margin-left: 8px;
+  color: #1890ff;
+  font-weight: 500;
+}
+
 /* 车辆状态 */
 .vehicle-status {
   margin: 0 8px;
@@ -613,6 +921,15 @@ export default {
 .direction {
   display: block;
   color: #666;
+}
+
+/* 无数据提示 */
+.no-data {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  color: #999;
 }
 
 /* 底部统计 */

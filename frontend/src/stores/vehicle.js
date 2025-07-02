@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia'
+import { allMockVehicles, getVehicleStats } from '@/utils/mockData'
 
 export const useVehicleStore = defineStore('vehicle', {
   state: () => ({
-    vehicles: [],
+    vehicles: allMockVehicles, // 使用100辆车的模拟数据
     selectedVehicles: [],
     vehiclePositions: {},
     isLoading: false,
-    centerMapToVehicle: null
+    centerMapToVehicle: null,
+    vehicleStats: getVehicleStats() // 添加车辆统计信息
   }),
 
   getters: {
@@ -25,7 +27,10 @@ export const useVehicleStore = defineStore('vehicle', {
     },
     
     // 获取需要定位到地图中心的车辆
-    getCenterMapToVehicle: (state) => state.centerMapToVehicle
+    getCenterMapToVehicle: (state) => state.centerMapToVehicle,
+    
+    // 获取车辆统计信息
+    getVehicleStats: (state) => state.vehicleStats
   },
 
   actions: {

@@ -1,4 +1,43 @@
-// 模拟车辆数据
+// 车组数据
+export const vehicleGroups = [
+  {
+    id: 'G001',
+    name: '北京运输一队',
+    company: '北京运输有限公司',
+    description: '主要负责北京市内货运',
+    vehicleCount: 25
+  },
+  {
+    id: 'G002',
+    name: '北京客运一队',
+    company: '北京客运集团',
+    description: '主要负责北京市内客运',
+    vehicleCount: 20
+  },
+  {
+    id: 'G003',
+    name: '北京物流一队',
+    company: '北京物流有限公司',
+    description: '主要负责物流配送',
+    vehicleCount: 30
+  },
+  {
+    id: 'G004',
+    name: '北京快递一队',
+    company: '北京快递有限公司',
+    description: '主要负责快递配送',
+    vehicleCount: 15
+  },
+  {
+    id: 'G005',
+    name: '北京租赁一队',
+    company: '北京汽车租赁有限公司',
+    description: '主要负责汽车租赁',
+    vehicleCount: 10
+  }
+]
+
+// 模拟车辆数据 - 扩充到100辆，添加车组信息
 export const mockVehicles = [
   {
     id: '001',
@@ -7,6 +46,9 @@ export const mockVehicles = [
     vehicleType: '货车',
     ownerName: '张三',
     contactPhone: '13800138001',
+    groupId: 'G001',
+    groupName: '北京运输一队',
+    company: '北京运输有限公司',
     status: 1  // 1: 行驶中, 2: 停车, 0: 离线
   },
   {
@@ -16,6 +58,9 @@ export const mockVehicles = [
     vehicleType: '客车',
     ownerName: '李四',
     contactPhone: '13800138002',
+    groupId: 'G002',
+    groupName: '北京客运一队',
+    company: '北京客运集团',
     status: 2  // 停车
   },
   {
@@ -25,6 +70,9 @@ export const mockVehicles = [
     vehicleType: '货车',
     ownerName: '王五',
     contactPhone: '13800138003',
+    groupId: 'G001',
+    groupName: '北京运输一队',
+    company: '北京运输有限公司',
     status: 1  // 行驶中
   },
   {
@@ -34,6 +82,9 @@ export const mockVehicles = [
     vehicleType: '客车',
     ownerName: '赵六',
     contactPhone: '13800138004',
+    groupId: 'G002',
+    groupName: '北京客运一队',
+    company: '北京客运集团',
     status: 0  // 离线
   },
   {
@@ -43,6 +94,9 @@ export const mockVehicles = [
     vehicleType: '货车',
     ownerName: '钱七',
     contactPhone: '13800138005',
+    groupId: 'G003',
+    groupName: '北京物流一队',
+    company: '北京物流有限公司',
     status: 1  // 行驶中
   },
   {
@@ -52,6 +106,9 @@ export const mockVehicles = [
     vehicleType: '货车',
     ownerName: '孙八',
     contactPhone: '13800138006',
+    groupId: 'G003',
+    groupName: '北京物流一队',
+    company: '北京物流有限公司',
     status: 2  // 停车
   },
   {
@@ -61,6 +118,9 @@ export const mockVehicles = [
     vehicleType: '客车',
     ownerName: '周九',
     contactPhone: '13800138007',
+    groupId: 'G002',
+    groupName: '北京客运一队',
+    company: '北京客运集团',
     status: 1  // 行驶中
   },
   {
@@ -70,16 +130,84 @@ export const mockVehicles = [
     vehicleType: '货车',
     ownerName: '吴十',
     contactPhone: '13800138008',
+    groupId: 'G001',
+    groupName: '北京运输一队',
+    company: '北京运输有限公司',
     status: 0  // 离线
   }
 ]
 
-// 北京周边坐标范围
+// 生成额外的92辆车
+const generateAdditionalVehicles = () => {
+  const additionalVehicles = []
+  const vehicleTypes = ['货车', '客车', '轿车', '面包车', '厢式车']
+  const statuses = [0, 1, 2] // 离线、行驶中、停车
+  const statusWeights = [0.1, 0.6, 0.3] // 状态分布权重
+  
+  // 车组分配权重
+  const groupWeights = [
+    { group: vehicleGroups[0], weight: 0.25 }, // 北京运输一队 25%
+    { group: vehicleGroups[1], weight: 0.20 }, // 北京客运一队 20%
+    { group: vehicleGroups[2], weight: 0.30 }, // 北京物流一队 30%
+    { group: vehicleGroups[3], weight: 0.15 }, // 北京快递一队 15%
+    { group: vehicleGroups[4], weight: 0.10 }  // 北京租赁一队 10%
+  ]
+  
+  for (let i = 9; i <= 100; i++) {
+    const id = i.toString().padStart(3, '0')
+    const vehicleType = vehicleTypes[Math.floor(Math.random() * vehicleTypes.length)]
+    
+    // 根据权重随机选择状态
+    const random = Math.random()
+    let status
+    if (random < statusWeights[0]) status = 0
+    else if (random < statusWeights[0] + statusWeights[1]) status = 1
+    else status = 2
+    
+    // 根据权重随机选择车组
+    const groupRandom = Math.random()
+    let selectedGroup = groupWeights[0].group
+    let cumulativeWeight = 0
+    for (const groupWeight of groupWeights) {
+      cumulativeWeight += groupWeight.weight
+      if (groupRandom <= cumulativeWeight) {
+        selectedGroup = groupWeight.group
+        break
+      }
+    }
+    
+    // 生成车牌号
+    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z']
+    const letter = letters[Math.floor(Math.random() * letters.length)]
+    const numbers = Math.floor(Math.random() * 90000) + 10000
+    const vehicleNo = `京${letter}${numbers}`
+    
+    additionalVehicles.push({
+      id,
+      vehicleNo,
+      terminalId: `T${id}`,
+      vehicleType,
+      ownerName: `车主${i}`,
+      contactPhone: `13800138${id}`,
+      groupId: selectedGroup.id,
+      groupName: selectedGroup.name,
+      company: selectedGroup.company,
+      status
+    })
+  }
+  
+  return additionalVehicles
+}
+
+// 合并所有车辆数据
+export const allMockVehicles = [...mockVehicles, ...generateAdditionalVehicles()]
+
+// 北京周边坐标范围 - 扩大范围以容纳更多车辆
 const BEIJING_BOUNDS = {
-  minLat: 39.4,
-  maxLat: 40.2,
-  minLng: 115.7,
-  maxLng: 117.4
+  minLat: 39.2,
+  maxLat: 40.4,
+  minLng: 115.4,
+  maxLng: 117.6
 }
 
 // 生成随机坐标
@@ -89,7 +217,7 @@ export function generateRandomPosition() {
   return { lat, lng }
 }
 
-// 生成车辆位置数据
+// 生成车辆位置数据 - 优化性能
 export function generateVehiclePositions() {
   const positions = {}
   
@@ -98,7 +226,8 @@ export function generateVehiclePositions() {
     window.lastVehiclePositions = {}
   }
   
-  mockVehicles.forEach(vehicle => {
+  // 使用allMockVehicles而不是mockVehicles
+  allMockVehicles.forEach(vehicle => {
     let position
     
     if (vehicle.status === 0 || vehicle.status === 2) {
@@ -144,11 +273,23 @@ export function generateVehiclePositions() {
   return positions
 }
 
-// 模拟API调用
-export function mockApiCall(delay = 1000) {
+// 模拟API调用 - 优化延迟
+export function mockApiCall(delay = 500) {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(generateVehiclePositions())
     }, delay)
   })
+}
+
+// 获取车辆统计信息
+export function getVehicleStats() {
+  const stats = {
+    total: allMockVehicles.length,
+    online: allMockVehicles.filter(v => v.status === 1).length,
+    parking: allMockVehicles.filter(v => v.status === 2).length,
+    offline: allMockVehicles.filter(v => v.status === 0).length
+  }
+  
+  return stats
 } 

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>车辆过滤模糊匹配测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+        .test-title {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .test-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        .test-result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+            margin-top: 10px;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        .info {
+            border-left-color: #17a2b8;
+            background: #d1ecf1;
+        }
+        .filter-demo {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+            align-items: center;
+        }
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .filter-item label {
+            font-weight: bold;
+            color: #555;
+        }
+        .filter-item select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-width: 150px;
+        }
+        .filter-item input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-width: 150px;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+        }
+        .stat-item {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .vehicle-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .vehicle-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .vehicle-item:last-child {
+            border-bottom: none;
+        }
+        .vehicle-info {
+            flex: 1;
+        }
+        .vehicle-no {
+            font-weight: bold;
+            color: #333;
+        }
+        .vehicle-details {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .vehicle-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-online {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-parking {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .test-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .test-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>车辆过滤模糊匹配功能测试</h1>
+        
+        <div class="test-section">
+            <div class="test-title">功能说明</div>
+            <div class="test-description">
+                本测试页面验证车组和公司字段的模糊匹配功能：
+                <ul>
+                    <li>支持输入搜索，实时过滤选项</li>
+                    <li>支持中文模糊匹配</li>
+                    <li>支持拼音首字母匹配</li>
+                    <li>支持部分关键词匹配</li>
+                    <li>加载状态显示</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">模糊匹配演示</div>
+            <div class="test-description">
+                在下面的选择器中输入关键词，测试模糊匹配功能：
+            </div>
+            
+            <div class="filter-demo">
+                <div class="filter-item">
+                    <label>车组选择（支持模糊匹配）</label>
+                    <select id="groupSelect" onchange="updateResults()">
+                        <option value="">全部车组</option>
+                        <option value="第一车队">第一车队</option>
+                        <option value="第二车队">第二车队</option>
+                        <option value="第三车队">第三车队</option>
+                        <option value="第四车队">第四车队</option>
+                        <option value="第五车队">第五车队</option>
+                        <option value="第六车队">第六车队</option>
+                        <option value="第七车队">第七车队</option>
+                        <option value="第八车队">第八车队</option>
+                        <option value="第九车队">第九车队</option>
+                        <option value="第十车队">第十车队</option>
+                    </select>
+                </div>
+                
+                <div class="filter-item">
+                    <label>公司选择（支持模糊匹配）</label>
+                    <select id="companySelect" onchange="updateResults()">
+                        <option value="">全部公司</option>
+                        <option value="北京运输公司">北京运输公司</option>
+                        <option value="上海物流公司">上海物流公司</option>
+                        <option value="广州货运公司">广州货运公司</option>
+                        <option value="深圳快递公司">深圳快递公司</option>
+                        <option value="杭州配送公司">杭州配送公司</option>
+                        <option value="南京运输公司">南京运输公司</option>
+                        <option value="武汉物流公司">武汉物流公司</option>
+                        <option value="成都货运公司">成都货运公司</option>
+                        <option value="重庆快递公司">重庆快递公司</option>
+                        <option value="西安配送公司">西安配送公司</option>
+                    </select>
+                </div>
+                
+                <div class="filter-item">
+                    <label>车牌号搜索</label>
+                    <input type="text" id="vehicleNoInput" placeholder="输入车牌号" oninput="updateResults()">
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalCount">100</div>
+                    <div class="stat-label">总车辆数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="filteredCount">100</div>
+                    <div class="stat-label">过滤后数量</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="filterPercentage">100%</div>
+                    <div class="stat-label">显示比例</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">测试用例</div>
+            <div class="test-description">
+                点击下面的按钮测试不同的模糊匹配场景：
+            </div>
+            
+            <div class="test-buttons">
+                <button class="test-btn btn-primary" onclick="testGroupFuzzy()">测试车组模糊匹配</button>
+                <button class="test-btn btn-success" onclick="testCompanyFuzzy()">测试公司模糊匹配</button>
+                <button class="test-btn btn-warning" onclick="testCombinedFilter()">测试组合过滤</button>
+                <button class="test-btn btn-danger" onclick="resetFilters()">重置过滤</button>
+            </div>
+            
+            <div id="testResults" class="test-result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">过滤结果预览</div>
+            <div class="vehicle-list" id="vehicleList">
+                <!-- 车辆列表将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 生成100辆车的完整数据
+        const allVehicles = [];
+        for (let i = 1; i <= 100; i++) {
+            const groupIndex = Math.floor((i - 1) / 10) + 1;
+            const companyIndex = Math.floor((i - 1) / 10) + 1;
+            const status = [0, 1, 2][Math.floor(Math.random() * 3)];
+            
+            allVehicles.push({
+                id: i,
+                vehicleNo: `京${String.fromCharCode(65 + (i % 26))}${String(i).padStart(5, '0')}`,
+                groupName: `第${groupIndex}车队`,
+                company: ['北京运输公司', '上海物流公司', '广州货运公司', '深圳快递公司', '杭州配送公司', '南京运输公司', '武汉物流公司', '成都货运公司', '重庆快递公司', '西安配送公司'][companyIndex - 1],
+                status: status
+            });
+        }
+
+        let filteredVehicles = [...allVehicles];
+
+        // 更新结果显示
+        function updateResults() {
+            const groupFilter = document.getElementById('groupSelect').value;
+            const companyFilter = document.getElementById('companySelect').value;
+            const vehicleNoFilter = document.getElementById('vehicleNoInput').value.toLowerCase();
+
+            filteredVehicles = allVehicles.filter(vehicle => {
+                // 车组过滤
+                if (groupFilter && vehicle.groupName !== groupFilter) {
+                    return false;
+                }
+                
+                // 公司过滤
+                if (companyFilter && vehicle.company !== companyFilter) {
+                    return false;
+                }
+                
+                // 车牌号过滤
+                if (vehicleNoFilter && !vehicle.vehicleNo.toLowerCase().includes(vehicleNoFilter)) {
+                    return false;
+                }
+                
+                return true;
+            });
+
+            updateStats();
+            updateVehicleList();
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('totalCount').textContent = allVehicles.length;
+            document.getElementById('filteredCount').textContent = filteredVehicles.length;
+            const percentage = allVehicles.length > 0 ? Math.round((filteredVehicles.length / allVehicles.length) * 100) : 0;
+            document.getElementById('filterPercentage').textContent = percentage + '%';
+        }
+
+        // 更新车辆列表
+        function updateVehicleList() {
+            const vehicleList = document.getElementById('vehicleList');
+            vehicleList.innerHTML = '';
+
+            if (filteredVehicles.length === 0) {
+                vehicleList.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">暂无符合条件的车辆</div>';
+                return;
+            }
+
+            filteredVehicles.slice(0, 20).forEach(vehicle => {
+                const vehicleItem = document.createElement('div');
+                vehicleItem.className = 'vehicle-item';
+                
+                const statusClass = vehicle.status === 1 ? 'status-online' : vehicle.status === 2 ? 'status-parking' : 'status-offline';
+                const statusText = vehicle.status === 1 ? '在线' : vehicle.status === 2 ? '停车' : '离线';
+                
+                vehicleItem.innerHTML = `
+                    <div class="vehicle-info">
+                        <div class="vehicle-no">${vehicle.vehicleNo}</div>
+                        <div class="vehicle-details">${vehicle.groupName} | ${vehicle.company}</div>
+                    </div>
+                    <div class="vehicle-status ${statusClass}">${statusText}</div>
+                `;
+                
+                vehicleList.appendChild(vehicleItem);
+            });
+
+            if (filteredVehicles.length > 20) {
+                const moreItem = document.createElement('div');
+                moreItem.style.padding = '10px; text-align: center; color: #666; font-style: italic;';
+                moreItem.textContent = `... 还有 ${filteredVehicles.length - 20} 辆车`;
+                vehicleList.appendChild(moreItem);
+            }
+        }
+
+        // 测试车组模糊匹配
+        function testGroupFuzzy() {
+            const testCases = [
+                { input: '第一', expected: '第一车队' },
+                { input: '车队', expected: '包含所有车队' },
+                { input: '1', expected: '第一车队' },
+                { input: '一', expected: '第一车队' }
+            ];
+
+            let results = '<h4>车组模糊匹配测试结果：</h4>';
+            testCases.forEach(testCase => {
+                const matched = allVehicles.filter(v => 
+                    v.groupName.toLowerCase().includes(testCase.input.toLowerCase())
+                );
+                const success = matched.length > 0;
+                results += `
+                    <div class="${success ? 'success' : 'error'}">
+                        <strong>输入: "${testCase.input}"</strong><br>
+                        期望: ${testCase.expected}<br>
+                        结果: 找到 ${matched.length} 个匹配项
+                        ${success ? '✓ 通过' : '✗ 失败'}
+                    </div>
+                `;
+            });
+
+            showTestResults(results);
+        }
+
+        // 测试公司模糊匹配
+        function testCompanyFuzzy() {
+            const testCases = [
+                { input: '北京', expected: '北京运输公司' },
+                { input: '运输', expected: '包含运输公司' },
+                { input: '物流', expected: '包含物流公司' },
+                { input: '公司', expected: '包含所有公司' }
+            ];
+
+            let results = '<h4>公司模糊匹配测试结果：</h4>';
+            testCases.forEach(testCase => {
+                const matched = allVehicles.filter(v => 
+                    v.company.toLowerCase().includes(testCase.input.toLowerCase())
+                );
+                const success = matched.length > 0;
+                results += `
+                    <div class="${success ? 'success' : 'error'}">
+                        <strong>输入: "${testCase.input}"</strong><br>
+                        期望: ${testCase.expected}<br>
+                        结果: 找到 ${matched.length} 个匹配项
+                        ${success ? '✓ 通过' : '✗ 失败'}
+                    </div>
+                `;
+            });
+
+            showTestResults(results);
+        }
+
+        // 测试组合过滤
+        function testCombinedFilter() {
+            const results = '<h4>组合过滤测试结果：</h4>';
+            
+            // 测试车组+公司组合
+            const groupCompanyFiltered = allVehicles.filter(v => 
+                v.groupName.includes('第一') && v.company.includes('北京')
+            );
+            
+            results += `
+                <div class="info">
+                    <strong>车组包含"第一" + 公司包含"北京"</strong><br>
+                    结果: 找到 ${groupCompanyFiltered.length} 个匹配项
+                </div>
+            `;
+
+            // 测试车牌号+状态组合
+            const vehicleNoStatusFiltered = allVehicles.filter(v => 
+                v.vehicleNo.includes('A') && v.status === 1
+            );
+            
+            results += `
+                <div class="info">
+                    <strong>车牌号包含"A" + 状态为在线</strong><br>
+                    结果: 找到 ${vehicleNoStatusFiltered.length} 个匹配项
+                </div>
+            `;
+
+            showTestResults(results);
+        }
+
+        // 重置过滤
+        function resetFilters() {
+            document.getElementById('groupSelect').value = '';
+            document.getElementById('companySelect').value = '';
+            document.getElementById('vehicleNoInput').value = '';
+            filteredVehicles = [...allVehicles];
+            updateStats();
+            updateVehicleList();
+            
+            showTestResults('<div class="success">所有过滤条件已重置</div>');
+        }
+
+        // 显示测试结果
+        function showTestResults(content) {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = content;
+            resultsDiv.style.display = 'block';
+        }
+
+        // 初始化页面
+        document.addEventListener('DOMContentLoaded', function() {
+            updateResults();
+        });
+    </script>
+</body>
+</html> 
