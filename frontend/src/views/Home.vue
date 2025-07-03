@@ -26,6 +26,9 @@
       
       <!-- 地图容器 -->
       <MapContainer />
+      
+      <!-- 告警弹窗 -->
+      <AlarmPopup />
     </div>
     
     <!-- 底部状态栏 -->
@@ -48,8 +51,31 @@
           <span class="value status-online">正常</span>
         </div>
         
-        <!-- 车辆信息栏控制按钮 -->
+        <!-- 告警控制按钮 -->
         <div class="status-controls">
+          <!-- 告警弹窗开关 -->
+          <el-button 
+            :type="alarmSettings.showAlarmPopup ? 'danger' : 'default'"
+            size="small"
+            @click="toggleAlarmPopup"
+            title="告警弹窗"
+          >
+            <el-icon><Bell /></el-icon>
+            <span class="button-text">告警弹窗</span>
+          </el-button>
+          
+          <!-- 告警提示音开关 -->
+          <el-button 
+            :type="alarmSettings.enableAlarmSound ? 'warning' : 'default'"
+            size="small"
+            @click="toggleAlarmSound"
+            title="告警提示音"
+          >
+            <el-icon><VideoPlay /></el-icon>
+            <span class="button-text">提示音</span>
+          </el-button>
+          
+          <!-- 车辆信息栏控制按钮 -->
           <el-button 
             :type="showVehicleInfoBar ? 'primary' : 'default'"
             size="small"
@@ -71,18 +97,23 @@ import { ref, computed, onMounted, provide } from 'vue'
 import { useVehicleStore } from '@/stores/vehicle'
 import VehicleList from '@/components/VehicleList.vue'
 import MapContainer from '@/components/MapContainer.vue'
-import { InfoFilled } from '@element-plus/icons-vue'
+import AlarmPopup from '@/components/AlarmPopup.vue'
+import { InfoFilled, Bell, VideoPlay } from '@element-plus/icons-vue'
 
 export default {
   name: 'Home',
   components: {
     VehicleList,
-    MapContainer
+    MapContainer,
+    AlarmPopup
   },
   setup() {
     const vehicleStore = useVehicleStore()
     const lastUpdateTime = ref('--')
     const showVehicleInfoBar = ref(false)
+    
+    // 告警设置
+    const alarmSettings = computed(() => vehicleStore.getAlarmSettings)
     
     const onlineVehiclesCount = computed(() => {
       return vehicleStore.getAllVehicles.filter(v => v.status === 1).length
@@ -95,6 +126,16 @@ export default {
     // 切换车辆信息栏显示状态
     const toggleVehicleInfoBar = () => {
       showVehicleInfoBar.value = !showVehicleInfoBar.value
+    }
+    
+    // 切换告警弹窗显示
+    const toggleAlarmPopup = () => {
+      vehicleStore.toggleAlarmPopup()
+    }
+    
+    // 切换告警提示音
+    const toggleAlarmSound = () => {
+      vehicleStore.toggleAlarmSound()
     }
     
     // 更新最后更新时间
@@ -117,7 +158,10 @@ export default {
       selectedVehiclesCount,
       lastUpdateTime,
       showVehicleInfoBar,
-      toggleVehicleInfoBar
+      toggleVehicleInfoBar,
+      alarmSettings,
+      toggleAlarmPopup,
+      toggleAlarmSound
     }
   }
 }
@@ -210,6 +254,7 @@ export default {
   margin-left: auto;
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
 .button-text {

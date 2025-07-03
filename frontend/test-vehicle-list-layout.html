@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>车辆列表布局测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .test-description {
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .test-button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .test-button:hover {
+            background: #40a9ff;
+        }
+        .mock-toolbar {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            background: #fafafa;
+            margin-bottom: 20px;
+        }
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+        }
+        .selection-info {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+            background: #e6f7ff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #91d5ff;
+        }
+        .mock-button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .mock-button.secondary {
+            background: #f5f5f5;
+            color: #666;
+            border: 1px solid #d9d9d9;
+        }
+        .mock-button:disabled {
+            background: #f5f5f5;
+            color: #bfbfbf;
+            cursor: not-allowed;
+        }
+        .layout-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .comparison-item {
+            border: 1px solid #e8e8e8;
+            border-radius: 6px;
+            padding: 15px;
+        }
+        .comparison-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .comparison-before {
+            border-left: 4px solid #ff4d4f;
+        }
+        .comparison-after {
+            border-left: 4px solid #52c41a;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>车辆列表布局测试</h1>
+        
+        <div class="test-section">
+            <div class="test-title">布局调整说明</div>
+            <div class="test-description">
+                将"全选"与"清空"按钮从过滤面板移动到工具栏，与"已选择XX/XX"和"隐藏过滤"按钮放在同一行。
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">调整后的布局</div>
+            <div class="test-description">
+                当前工具栏布局（调整后）：
+            </div>
+            
+            <div class="mock-toolbar">
+                <div class="toolbar-left">
+                    <span class="selection-info">已选择: 5/100</span>
+                    <button class="mock-button">全选</button>
+                    <button class="mock-button secondary">清空</button>
+                </div>
+                
+                <div class="toolbar-right">
+                    <button class="mock-button secondary">
+                        🔍 隐藏过滤
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="layout-comparison">
+            <div class="comparison-item comparison-before">
+                <div class="comparison-title">调整前</div>
+                <div class="test-description">
+                    <strong>过滤面板中：</strong><br>
+                    - 重置按钮<br>
+                    - 全选按钮<br>
+                    - 清空按钮<br><br>
+                    <strong>工具栏中：</strong><br>
+                    - 已选择: XX/XX<br>
+                    - 隐藏过滤按钮
+                </div>
+            </div>
+            
+            <div class="comparison-item comparison-after">
+                <div class="comparison-title">调整后</div>
+                <div class="test-description">
+                    <strong>过滤面板中：</strong><br>
+                    - 重置按钮<br><br>
+                    <strong>工具栏中：</strong><br>
+                    - 已选择: XX/XX<br>
+                    - 全选按钮<br>
+                    - 清空按钮<br>
+                    - 隐藏过滤按钮
+                </div>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">优化效果</div>
+            <div class="test-description">
+                <strong>布局优化：</strong><br>
+                ✅ 将选择相关操作集中在工具栏<br>
+                ✅ 减少过滤面板的按钮数量<br>
+                ✅ 提高操作便利性<br>
+                ✅ 保持界面整洁<br><br>
+                <strong>用户体验：</strong><br>
+                ✅ 选择操作更加直观<br>
+                ✅ 减少界面层级<br>
+                ✅ 操作流程更加顺畅
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <div class="test-title">测试说明</div>
+            <div class="test-description">
+                1. 打开主页面查看车辆列表<br>
+                2. 验证"全选"和"清空"按钮已移动到工具栏<br>
+                3. 确认按钮与"已选择XX/XX"在同一行<br>
+                4. 测试按钮功能是否正常<br>
+                5. 检查布局在不同屏幕尺寸下的表现
+            </div>
+            <button class="test-button" onclick="openMainPage()">打开主页面测试</button>
+        </div>
+    </div>
+
+    <script>
+        function openMainPage() {
+            // 打开主页面进行测试
+            window.open('http://localhost:5173', '_blank');
+        }
+        
+        // 页面加载时显示测试信息
+        window.onload = function() {
+            console.log('车辆列表布局测试页面已加载');
+            console.log('请打开主页面验证布局调整效果');
+        };
+    </script>
+</body>
+</html> 

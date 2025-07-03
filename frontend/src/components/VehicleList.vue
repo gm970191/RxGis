@@ -158,21 +158,6 @@
           >
             重置
           </el-button>
-          <el-button 
-            size="small" 
-            type="primary" 
-            @click="selectAll"
-            :disabled="filteredVehicles.length === 0"
-          >
-            全选
-          </el-button>
-          <el-button 
-            size="small" 
-            @click="clearSelection"
-            :disabled="selectedVehicles.length === 0"
-          >
-            清空
-          </el-button>
         </div>
         
         <div class="filter-stats">
@@ -190,6 +175,23 @@
       <div class="vehicle-list-toolbar">
         <div class="toolbar-left">
           <span class="selection-info">已选择: {{ selectedVehicles.length }}/{{ filteredVehicles.length }}</span>
+          <el-button 
+            size="small" 
+            type="primary" 
+            @click="selectAll"
+            :disabled="filteredVehicles.length === 0"
+            style="margin-left: 10px;"
+          >
+            全选
+          </el-button>
+          <el-button 
+            size="small" 
+            @click="clearSelection"
+            :disabled="selectedVehicles.length === 0"
+            style="margin-left: 5px;"
+          >
+            清空
+          </el-button>
         </div>
         
         <div class="toolbar-right">
@@ -812,6 +814,7 @@ export default {
 
 .toolbar-left {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 

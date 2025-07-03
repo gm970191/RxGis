@@ -292,4 +292,111 @@ export function getVehicleStats() {
   }
   
   return stats
+}
+
+// 告警类型定义
+export const alarmTypes = [
+  {
+    id: 'speed',
+    name: '超速告警',
+    description: '车辆行驶速度超过限制',
+    level: 'high',
+    icon: '🚨'
+  },
+  {
+    id: 'offline',
+    name: '离线告警',
+    description: '车辆设备离线',
+    level: 'medium',
+    icon: '📴'
+  },
+  {
+    id: 'geofence',
+    name: '越界告警',
+    description: '车辆超出电子围栏范围',
+    level: 'high',
+    icon: '🚧'
+  },
+  {
+    id: 'engine',
+    name: '发动机告警',
+    description: '发动机异常',
+    level: 'high',
+    icon: '🔧'
+  },
+  {
+    id: 'fuel',
+    name: '油量告警',
+    description: '油量不足',
+    level: 'low',
+    icon: '⛽'
+  },
+  {
+    id: 'temperature',
+    name: '温度告警',
+    description: '发动机温度异常',
+    level: 'medium',
+    icon: '🌡️'
+  }
+]
+
+// 生成模拟告警数据
+export function generateMockAlarms() {
+  const alarms = []
+  const currentTime = new Date()
+  
+  // 随机生成告警车辆数量（0-8辆车）
+  const vehicleCount = Math.floor(Math.random() * 9)
+  
+  if (vehicleCount === 0) {
+    return [] // 没有告警
+  }
+  
+  // 随机选择车辆（避免重复）
+  const selectedVehicles = []
+  const availableVehicles = [...mockVehicles]
+  
+  for (let i = 0; i < vehicleCount; i++) {
+    if (availableVehicles.length === 0) break
+    
+    const randomIndex = Math.floor(Math.random() * availableVehicles.length)
+    const vehicle = availableVehicles.splice(randomIndex, 1)[0]
+    selectedVehicles.push(vehicle)
+  }
+  
+  // 为每个选中的车辆生成告警
+  selectedVehicles.forEach((vehicle, index) => {
+    const alarmType = alarmTypes[Math.floor(Math.random() * alarmTypes.length)]
+    
+    // 随机时间（最近5分钟内）
+    const alarmTime = new Date(currentTime.getTime() - Math.random() * 5 * 60 * 1000)
+    
+    alarms.push({
+      id: `alarm_${Date.now()}_${index}`,
+      vehicleId: vehicle.id,
+      vehicleNo: vehicle.vehicleNo,
+      alarmType: alarmType.id,
+      alarmTypeName: alarmType.name,
+      alarmDescription: alarmType.description,
+      alarmLevel: alarmType.level,
+      alarmIcon: alarmType.icon,
+      alarmTime: alarmTime.toISOString(),
+      isRead: false
+    })
+  })
+  
+  return alarms
+}
+
+// 获取实时告警数据（模拟API调用）
+export async function getRealTimeAlarms() {
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300))
+  
+  // 30%的概率有告警
+  if (Math.random() < 0.3) {
+    return generateMockAlarms()
+  }
+  
+  return []
 } 

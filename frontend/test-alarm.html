@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>告警功能测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e8e8e8;
+            border-radius: 5px;
+        }
+        .test-button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #40a9ff;
+        }
+        .test-button.danger {
+            background: #ff4d4f;
+        }
+        .test-button.danger:hover {
+            background: #ff7875;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            border-radius: 4px;
+        }
+        .alarm-preview {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            border: 1px solid #e8e8e8;
+            overflow: hidden;
+            z-index: 1000;
+        }
+        .alarm-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
+            color: white;
+        }
+        .alarm-content {
+            padding: 16px;
+        }
+        .info-item {
+            display: flex;
+            margin-bottom: 8px;
+        }
+        .info-item .label {
+            width: 80px;
+            color: #666;
+        }
+        .info-item .value {
+            color: #333;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>告警功能测试</h1>
+        
+        <div class="test-section">
+            <h3>告警弹窗测试</h3>
+            <button class="test-button" onclick="testSingleAlarm()">测试单个告警</button>
+            <button class="test-button" onclick="testMultipleAlarms()">测试多个告警</button>
+            <button class="test-button danger" onclick="testBatchAlarms()">测试批量告警</button>
+            <button class="test-button" onclick="testNoAlarms()">测试无告警</button>
+            <div class="status" id="popup-status">状态: 未测试</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>告警提示音测试</h3>
+            <button class="test-button" onclick="testAlarmSound()">播放提示音</button>
+            <button class="test-button" onclick="testDifferentSounds()">测试不同音调</button>
+            <div class="status" id="sound-status">状态: 未测试</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>告警数据测试</h3>
+            <button class="test-button" onclick="testAlarmData()">生成测试告警数据</button>
+            <button class="test-button" onclick="clearAlarmData()">清空告警数据</button>
+            <div class="status" id="data-status">状态: 未测试</div>
+        </div>
+        
+        <div class="test-section">
+            <h3>告警轮询测试</h3>
+            <button class="test-button" onclick="startAlarmPolling()">开始轮询</button>
+            <button class="test-button danger" onclick="stopAlarmPolling()">停止轮询</button>
+            <div class="status" id="polling-status">状态: 未开始</div>
+        </div>
+    </div>
+
+    <script>
+        let pollingInterval = null;
+        let alarmCount = 0;
+
+        // 测试单个告警
+        function testSingleAlarm() {
+            const alarms = [{
+                id: `test_alarm_${Date.now()}`,
+                vehicleId: '001',
+                vehicleNo: '京A12345',
+                alarmType: 'speed',
+                alarmTypeName: '超速告警',
+                alarmDescription: '车辆行驶速度超过限制',
+                alarmLevel: 'high',
+                alarmIcon: '🚨',
+                alarmTime: new Date().toISOString(),
+                isRead: false
+            }];
+            
+            showAlarmPopup(alarms);
+            document.getElementById('popup-status').textContent = '状态: 单个告警弹窗已显示';
+        }
+
+        // 测试多个告警
+        function testMultipleAlarms() {
+            const alarmTypes = [
+                { name: '超速告警', icon: '🚨', level: 'high' },
+                { name: '离线告警', icon: '📴', level: 'medium' },
+                { name: '越界告警', icon: '🚧', level: 'high' },
+                { name: '发动机告警', icon: '🔧', level: 'high' },
+                { name: '油量告警', icon: '⛽', level: 'low' }
+            ];
+
+            const alarms = alarmTypes.map((type, index) => ({
+                id: `test_alarm_${Date.now()}_${index}`,
+                vehicleId: `00${index + 1}`,
+                vehicleNo: `京A${10000 + index}`,
+                alarmType: type.name.toLowerCase().replace('告警', ''),
+                alarmTypeName: type.name,
+                alarmDescription: `${type.name}测试描述`,
+                alarmLevel: type.level,
+                alarmIcon: type.icon,
+                alarmTime: new Date().toISOString(),
+                isRead: false
+            }));
+            
+            showAlarmPopup(alarms);
+            document.getElementById('popup-status').textContent = '状态: 多个告警已显示';
+        }
+        
+        // 测试批量告警
+        function testBatchAlarms() {
+            const alarmTypes = [
+                { name: '超速告警', icon: '🚨', level: 'high' },
+                { name: '离线告警', icon: '📴', level: 'medium' },
+                { name: '越界告警', icon: '🚧', level: 'high' },
+                { name: '发动机告警', icon: '🔧', level: 'high' },
+                { name: '油量告警', icon: '⛽', level: 'low' },
+                { name: '温度告警', icon: '🌡️', level: 'medium' }
+            ];
+
+            const alarms = [];
+            const vehicleCount = Math.floor(Math.random() * 8) + 3; // 3-10辆车
+            
+            for (let i = 0; i < vehicleCount; i++) {
+                const type = alarmTypes[Math.floor(Math.random() * alarmTypes.length)];
+                alarms.push({
+                    id: `batch_alarm_${Date.now()}_${i}`,
+                    vehicleId: `00${i + 1}`,
+                    vehicleNo: `京A${10000 + i}`,
+                    alarmType: type.name.toLowerCase().replace('告警', ''),
+                    alarmTypeName: type.name,
+                    alarmDescription: `${type.name}测试描述`,
+                    alarmLevel: type.level,
+                    alarmIcon: type.icon,
+                    alarmTime: new Date().toISOString(),
+                    isRead: false
+                });
+            }
+            
+            showAlarmPopup(alarms);
+            document.getElementById('popup-status').textContent = `状态: 批量告警已显示 (${alarms.length} 辆车)`;
+        }
+        
+        // 测试无告警
+        function testNoAlarms() {
+            showAlarmPopup([]);
+            document.getElementById('popup-status').textContent = '状态: 无告警测试 (不应显示弹窗)';
+        }
+
+        // 显示告警弹窗
+        function showAlarmPopup(alarms) {
+            // 如果没有告警，不显示弹窗
+            if (alarms.length === 0) {
+                return;
+            }
+            
+            // 移除现有的弹窗
+            const existingPopup = document.querySelector('.alarm-preview');
+            if (existingPopup) {
+                existingPopup.remove();
+            }
+
+            // 创建新弹窗
+            const popup = document.createElement('div');
+            popup.className = 'alarm-preview';
+            popup.style.width = '400px';
+            popup.style.maxHeight = '600px';
+            
+            // 生成告警列表HTML
+            const alarmListHTML = alarms.map(alarm => `
+                <div class="alarm-item" style="border: 1px solid #e8e8e8; border-radius: 6px; margin-bottom: 12px; overflow: hidden; border-left: 4px solid ${getLevelColor(alarm.alarmLevel)};">
+                    <div style="display: flex; align-items: center; padding: 8px 12px; background: #fafafa; border-bottom: 1px solid #e8e8e8;">
+                        <span style="font-size: 16px; margin-right: 8px;">${alarm.alarmIcon}</span>
+                        <span style="flex: 1; font-size: 12px; font-weight: 600; color: #333;">${alarm.alarmTypeName}</span>
+                        <span style="font-size: 10px; padding: 2px 6px; border-radius: 8px; background: #e8e8e8; color: #666;">${getLevelText(alarm.alarmLevel)}</span>
+                    </div>
+                    <div style="padding: 8px 12px;">
+                        <div style="display: flex; margin-bottom: 4px;">
+                            <span style="font-size: 11px; color: #666; width: 60px;">车牌号:</span>
+                            <span style="font-size: 11px; color: #333; font-weight: 500;">${alarm.vehicleNo}</span>
+                        </div>
+                        <div style="display: flex; margin-bottom: 4px;">
+                            <span style="font-size: 11px; color: #666; width: 60px;">告警时间:</span>
+                            <span style="font-size: 11px; color: #333; font-weight: 500;">${formatTime(alarm.alarmTime)}</span>
+                        </div>
+                        <div style="display: flex;">
+                            <span style="font-size: 11px; color: #666; width: 60px;">告警描述:</span>
+                            <span style="font-size: 11px; color: #333; font-weight: 500;">${alarm.alarmDescription}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // 生成统计信息
+            const highCount = alarms.filter(a => a.alarmLevel === 'high').length;
+            const mediumCount = alarms.filter(a => a.alarmLevel === 'medium').length;
+            const lowCount = alarms.filter(a => a.alarmLevel === 'low').length;
+            
+            popup.innerHTML = `
+                <div class="alarm-header">
+                    <div style="font-size: 20px; margin-right: 12px;">🚨</div>
+                    <div style="flex: 1;">
+                        <div style="font-size: 14px; font-weight: 600;">车辆告警信息</div>
+                        <div style="font-size: 11px; padding: 2px 6px; border-radius: 10px; background: rgba(255,255,255,0.2); width: fit-content;">
+                            ${alarms.length} 辆车告警
+                        </div>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; cursor: pointer; padding: 4px;">✕</button>
+                </div>
+                <div style="padding: 16px; max-height: 500px; overflow-y: auto;">
+                    <div style="margin-bottom: 16px;">
+                        ${alarmListHTML}
+                    </div>
+                    <div style="border-top: 1px solid #e8e8e8; padding-top: 12px;">
+                        <div style="display: flex; justify-content: space-around; margin-bottom: 12px;">
+                            <div style="display: flex; flex-direction: column; align-items: center;">
+                                <span style="font-size: 10px; color: #666;">高级别:</span>
+                                <span style="font-size: 14px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #fff2f0; color: #ff4d4f;">${highCount}</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; align-items: center;">
+                                <span style="font-size: 10px; color: #666;">中级别:</span>
+                                <span style="font-size: 14px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #fffbe6; color: #faad14;">${mediumCount}</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; align-items: center;">
+                                <span style="font-size: 10px; color: #666;">低级别:</span>
+                                <span style="font-size: 14px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #f6ffed; color: #52c41a;">${lowCount}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(popup);
+
+            // 8秒后自动关闭
+            setTimeout(() => {
+                if (popup.parentElement) {
+                    popup.remove();
+                }
+            }, 8000);
+
+            // 播放提示音
+            playAlarmSound();
+        }
+        
+        // 获取告警级别颜色
+        function getLevelColor(level) {
+            const colorMap = {
+                high: '#ff4d4f',
+                medium: '#faad14',
+                low: '#52c41a'
+            };
+            return colorMap[level] || '#e8e8e8';
+        }
+
+        // 获取告警级别文本
+        function getLevelText(level) {
+            const levelMap = {
+                high: '高',
+                medium: '中',
+                low: '低'
+            };
+            return levelMap[level] || '未知';
+        }
+
+        // 格式化时间
+        function formatTime(timeString) {
+            const date = new Date(timeString);
+            return date.toLocaleString('zh-CN', {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        // 播放告警提示音
+        function playAlarmSound() {
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // 设置音频参数
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+                
+                document.getElementById('sound-status').textContent = '状态: 提示音已播放';
+            } catch (error) {
+                console.warn('播放告警提示音失败:', error);
+                document.getElementById('sound-status').textContent = '状态: 提示音播放失败';
+            }
+        }
+
+        // 测试不同音调
+        function testDifferentSounds() {
+            const frequencies = [400, 600, 800, 1000];
+            frequencies.forEach((freq, index) => {
+                setTimeout(() => {
+                    try {
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+                        gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                        
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.2);
+                    } catch (error) {
+                        console.warn('播放提示音失败:', error);
+                    }
+                }, index * 300);
+            });
+            
+            document.getElementById('sound-status').textContent = '状态: 不同音调已播放';
+        }
+
+        // 测试告警数据
+        function testAlarmData() {
+            const mockAlarms = [];
+            const alarmTypes = [
+                { name: '超速告警', icon: '🚨', level: 'high' },
+                { name: '离线告警', icon: '📴', level: 'medium' },
+                { name: '越界告警', icon: '🚧', level: 'high' },
+                { name: '发动机告警', icon: '🔧', level: 'high' },
+                { name: '油量告警', icon: '⛽', level: 'low' }
+            ];
+
+            for (let i = 0; i < 5; i++) {
+                const type = alarmTypes[i];
+                const alarm = {
+                    id: `alarm_${Date.now()}_${i}`,
+                    vehicleId: `00${i + 1}`,
+                    vehicleNo: `京A${10000 + i}`,
+                    alarmType: type.name.toLowerCase().replace('告警', ''),
+                    alarmTypeName: type.name,
+                    alarmDescription: `${type.name}测试描述`,
+                    alarmLevel: type.level,
+                    alarmIcon: type.icon,
+                    alarmTime: new Date().toISOString(),
+                    isRead: false
+                };
+                mockAlarms.push(alarm);
+            }
+
+            console.log('生成的告警数据:', mockAlarms);
+            document.getElementById('data-status').textContent = `状态: 已生成 ${mockAlarms.length} 条告警数据`;
+        }
+
+        // 清空告警数据
+        function clearAlarmData() {
+            console.log('告警数据已清空');
+            document.getElementById('data-status').textContent = '状态: 告警数据已清空';
+        }
+
+        // 开始告警轮询
+        function startAlarmPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+
+            pollingInterval = setInterval(() => {
+                alarmCount++;
+                console.log(`轮询第 ${alarmCount} 次`);
+                
+                // 30%的概率生成告警
+                if (Math.random() < 0.3) {
+                    const alarmTypes = [
+                        { name: '超速告警', icon: '🚨', level: 'high' },
+                        { name: '离线告警', icon: '📴', level: 'medium' },
+                        { name: '越界告警', icon: '🚧', level: 'high' },
+                        { name: '发动机告警', icon: '🔧', level: 'high' },
+                        { name: '油量告警', icon: '⛽', level: 'low' },
+                        { name: '温度告警', icon: '🌡️', level: 'medium' }
+                    ];
+
+                    const alarms = [];
+                    const vehicleCount = Math.floor(Math.random() * 6) + 1; // 1-6辆车
+                    
+                    for (let i = 0; i < vehicleCount; i++) {
+                        const type = alarmTypes[Math.floor(Math.random() * alarmTypes.length)];
+                        alarms.push({
+                            id: `polling_alarm_${Date.now()}_${i}`,
+                            vehicleId: `00${i + 1}`,
+                            vehicleNo: `京A${10000 + i}`,
+                            alarmType: type.name.toLowerCase().replace('告警', ''),
+                            alarmTypeName: type.name,
+                            alarmDescription: `${type.name}测试描述`,
+                            alarmLevel: type.level,
+                            alarmIcon: type.icon,
+                            alarmTime: new Date().toISOString(),
+                            isRead: false
+                        });
+                    }
+                    
+                    showAlarmPopup(alarms);
+                }
+            }, 3000);
+
+            document.getElementById('polling-status').textContent = '状态: 轮询已开始 (每3秒)';
+        }
+
+        // 停止告警轮询
+        function stopAlarmPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                document.getElementById('polling-status').textContent = '状态: 轮询已停止';
+            }
+        }
+    </script>
+</body>
+</html> 

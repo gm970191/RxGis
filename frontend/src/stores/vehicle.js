@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { allMockVehicles, getVehicleStats } from '@/utils/mockData'
+import { allMockVehicles, getVehicleStats, getRealTimeAlarms } from '@/utils/mockData'
 
 export const useVehicleStore = defineStore('vehicle', {
   state: () => ({
@@ -8,7 +8,13 @@ export const useVehicleStore = defineStore('vehicle', {
     vehiclePositions: {},
     isLoading: false,
     centerMapToVehicle: null,
-    vehicleStats: getVehicleStats() // 添加车辆统计信息
+    vehicleStats: getVehicleStats(), // 添加车辆统计信息
+    // 告警相关状态
+    alarms: [],
+    alarmSettings: {
+      showAlarmPopup: true,
+      enableAlarmSound: true
+    }
   }),
 
   getters: {
@@ -30,7 +36,13 @@ export const useVehicleStore = defineStore('vehicle', {
     getCenterMapToVehicle: (state) => state.centerMapToVehicle,
     
     // 获取车辆统计信息
-    getVehicleStats: (state) => state.vehicleStats
+    getVehicleStats: (state) => state.vehicleStats,
+    
+    // 获取未读告警
+    getUnreadAlarms: (state) => state.alarms.filter(alarm => !alarm.isRead),
+    
+    // 获取告警设置
+    getAlarmSettings: (state) => state.alarmSettings
   },
 
   actions: {
@@ -117,6 +129,68 @@ export const useVehicleStore = defineStore('vehicle', {
       console.log('clearCenterMapToVehicle called')
       this.centerMapToVehicle = null
       console.log('centerMapToVehicle cleared')
+    },
+    
+    // 告警相关方法
+    
+    // 获取实时告警数据
+    async fetchRealTimeAlarms() {
+      try {
+        const newAlarms = await getRealTimeAlarms()
+        if (newAlarms.length > 0) {
+          // 添加新告警到列表
+          this.alarms.unshift(...newAlarms)
+          
+          // 限制告警数量，保留最新的50条
+          if (this.alarms.length > 50) {
+            this.alarms = this.alarms.slice(0, 50)
+          }
+          
+          return newAlarms
+        }
+        return []
+      } catch (error) {
+        console.error('获取告警数据失败:', error)
+        return []
+      }
+    },
+    
+    // 标记告警为已读
+    markAlarmAsRead(alarmId) {
+      const alarm = this.alarms.find(a => a.id === alarmId)
+      if (alarm) {
+        alarm.isRead = true
+      }
+    },
+    
+    // 标记所有告警为已读
+    markAllAlarmsAsRead() {
+      this.alarms.forEach(alarm => {
+        alarm.isRead = true
+      })
+    },
+    
+    // 删除告警
+    removeAlarm(alarmId) {
+      const index = this.alarms.findIndex(a => a.id === alarmId)
+      if (index > -1) {
+        this.alarms.splice(index, 1)
+      }
+    },
+    
+    // 清空所有告警
+    clearAllAlarms() {
+      this.alarms = []
+    },
+    
+    // 切换告警弹窗显示
+    toggleAlarmPopup() {
+      this.alarmSettings.showAlarmPopup = !this.alarmSettings.showAlarmPopup
+    },
+    
+    // 切换告警提示音
+    toggleAlarmSound() {
+      this.alarmSettings.enableAlarmSound = !this.alarmSettings.enableAlarmSound
     }
   }
 }) 
